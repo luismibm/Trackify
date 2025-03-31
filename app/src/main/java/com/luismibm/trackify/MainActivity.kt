@@ -49,6 +49,19 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                if (isAuthenticated) {
+                    MainLayout(navController = navController, userEmail)
+                } else {
+                    RegisterScreen(
+                        onSignUpSuccess = { email ->
+                            userEmail = email
+                            isAuthenticated = true
+                        }
+                    )
+                }
+
+                /*
+
                 NavHost(navController = navController, startDestination = if (isAuthenticated) "home" else "register") {
                     composable("register") {
                         RegisterScreen(
@@ -62,6 +75,8 @@ class MainActivity : ComponentActivity() {
                         MainScreen(navController = navController, email = userEmail)
                     }
                 }
+
+                 */
 
                 /*
                 if (isAuthenticated) {
@@ -77,49 +92,5 @@ class MainActivity : ComponentActivity() {
 
             }
         }
-    }
-}
-
-@Composable @OptIn(ExperimentalMaterial3Api::class)
-fun MainScreen(navController: NavHostController, email: String) {
-
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                modifier = Modifier.fillMaxWidth(),
-                title = {
-                    Text(
-                        text = "Home"
-                    )
-                }
-            )
-        }
-    ) { innerPadding ->
-        Row (
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column (
-                modifier = Modifier.fillMaxHeight()
-            ) {
-                Greeting(
-                    name = email,
-                    modifier = Modifier.padding(innerPadding)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Box (
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Hello $name!",
-            modifier = modifier
-        )
     }
 }

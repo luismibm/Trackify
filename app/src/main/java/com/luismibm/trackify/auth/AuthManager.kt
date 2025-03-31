@@ -14,9 +14,7 @@ sealed interface AuthResponse {
     data class Error(val message: String?): AuthResponse
 }
 
-class AuthManager(
-    private val context: Context
-) {
+class AuthManager(private val context: Context) {
 
     private val supabase = createSupabaseClient(
         supabaseUrl = BuildConfig.SUPABASE_URL,
