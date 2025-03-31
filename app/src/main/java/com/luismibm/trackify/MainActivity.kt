@@ -16,9 +16,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.luismibm.trackify.auth.RegisterScreen
 import com.luismibm.trackify.ui.theme.TrackifyTheme
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,14 +37,52 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TrackifyTheme {
-                MainScreen()
+
+                var isAuthenticated by remember { mutableStateOf(false) }
+                val navController = rememberNavController()
+
+                var userEmail by remember { mutableStateOf("") }
+
+                LaunchedEffect (isAuthenticated) {
+                    if (isAuthenticated) {
+                        navController.navigate("home")
+                    }
+                }
+
+                NavHost(navController = navController, startDestination = if (isAuthenticated) "home" else "register") {
+                    composable("register") {
+                        RegisterScreen(
+                            onSignUpSuccess = { email ->
+                                userEmail = email
+                                isAuthenticated = true
+                            }
+                        )
+                    }
+                    composable("home") {
+                        MainScreen(navController = navController, email = userEmail)
+                    }
+                }
+
+                /*
+                if (isAuthenticated) {
+                    MainScreen(navController = navController)
+                } else {
+                    RegisterScreen(
+                        onSignUpSuccess = {
+                            isAuthenticated = true
+                        }
+                    )
+                }
+                 */
+
             }
         }
     }
 }
 
 @Composable @OptIn(ExperimentalMaterial3Api::class)
-fun MainScreen() {
+fun MainScreen(navController: NavHostController, email: String) {
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -54,7 +103,7 @@ fun MainScreen() {
                 modifier = Modifier.fillMaxHeight()
             ) {
                 Greeting(
-                    name = "Trackify",
+                    name = email,
                     modifier = Modifier.padding(innerPadding)
                 )
             }
