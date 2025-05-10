@@ -1,0 +1,11 @@
+# MacOS
+.DS_Store
+
+# IDE Config
+.idea/
+.vscode/
+*.iml
+
+# Temporary files
+*.log
+*.tmp
