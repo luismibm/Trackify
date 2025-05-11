@@ -43,3 +43,19 @@ out/
 ### MacOS ###
 .DS_Store
 Thumbs.db
+
+## GPT Recommendations Below
+
+# Gradle files
+.gradle/
+build/
+   
+# Spring Boot
+target/
+   
+# Logs
+logs/
+*.log
+   
+# Compiled class files
+*.class
