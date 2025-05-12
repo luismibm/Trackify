@@ -11,11 +11,11 @@ class JwtUserDetailsService (
 ) : UserDetailsService {
 
     override fun loadUserByUsername(username: String): UserDetails {
-        val user = userRepository. findByUsername(username)
+        val user = userRepository.findByEmail(username)
             ?: throw UsernameNotFoundException("User $username not found")
 
         return User.builder()
-            .username(user.name)
+            .username(user.email)
             .password(user.password)
             .roles(user.role.name)
             .build()

@@ -40,10 +40,8 @@ class JwtAuthorizationFilter(
                     }
                 }
             } catch (ex: Exception) {
-                response.writer.write(
-                    """{"error": "Filter Authorization error: 
-                    |${ex.message ?: "unknown error"}"}""".trimMargin()
-                )
+                // No escribimos para evitar el error getWriter() has already been called
+                SecurityContextHolder.clearContext()
             }
         }
 
