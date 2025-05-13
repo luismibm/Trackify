@@ -3,6 +3,7 @@ package com.trackify
 import com.trackify.model.*
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
 import java.util.*
@@ -37,6 +38,27 @@ class APIController(
     @GetMapping("/users")
     fun getAllUsers(): ResponseEntity<List<User>> {
         return ResponseEntity.ok(userRepository.findAll())
+    }
+    
+    @GetMapping("/users/me")
+    fun getCurrentUser(): ResponseEntity<User> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val email = authentication.name
+        val user = userRepository.findByEmail(email)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+        
+        return ResponseEntity.ok(user)
+    }
+    
+    @PostMapping("/users/space")
+    fun updateUserSpace(@RequestBody request: UpdateSpaceRequest): ResponseEntity<User> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val email = authentication.name
+        val user = userRepository.findByEmail(email)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+        
+        user.spaceId = request.spaceId
+        return ResponseEntity.ok(userRepository.save(user))
     }
     
     // Space endpoints
@@ -94,6 +116,10 @@ data class UserRequest(
 
 data class SpaceRequest(
     val name: String
+)
+
+data class UpdateSpaceRequest(
+    val spaceId: UUID
 )
 
 data class TransactionRequest(

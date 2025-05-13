@@ -30,17 +30,18 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.AuthRequest
+import com.luismibm.android.auth.RegisterRequest
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(
-    onLoginSuccess: (String) -> Unit,
-    onLoginError: (String) -> Unit,
-    onNavigateToRegister: () -> Unit
+fun RegisterScreen(
+    onRegisterSuccess: () -> Unit,
+    onRegisterError: (String) -> Unit,
+    onNavigateToLogin: () -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     
     val scope = rememberCoroutineScope()
@@ -55,12 +56,12 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 110.dp),
+                .padding(bottom = 90.dp),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Login",
+                text = "Registro",
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp
@@ -96,7 +97,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Password",
+                text = "Contraseña",
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
@@ -122,23 +123,57 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Text(
+                text = "Confirmar Contraseña",
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            TextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                visualTransformation = PasswordVisualTransformation(),
+                placeholder = {
+                    Text(
+                        text = "***********",
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                },
+                shape = RoundedCornerShape(10.dp),
+                colors = TextFieldDefaults.colors(
+                    unfocusedIndicatorColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedContainerColor = Color.DarkGray,
+                    focusedContainerColor = Color.DarkGray,
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            
             Spacer(modifier = Modifier.height(40.dp))
             
             Button(
                 onClick = {
+                    if (password != confirmPassword) {
+                        onRegisterError("Las contraseñas no coinciden")
+                        return@Button
+                    }
+                    
                     scope.launch {
                         isLoading = true
                         try {
-                            val response = RetrofitClient.authService.login(AuthRequest(email, password))
-                            onLoginSuccess(response.accessToken)
+                            RetrofitClient.authService.register(RegisterRequest(email, password))
+                            onRegisterSuccess()
                         } catch (e: Exception) {
-                            onLoginError("Error: ${e.message}")
+                            onRegisterError("Error: ${e.message}")
                         } finally {
                             isLoading = false
                         }
                     }
                 },
-                enabled = !isLoading,
+                enabled = !isLoading && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF1DB954),
                     contentColor = Color.White
@@ -152,7 +187,7 @@ fun LoginScreen(
                     )
                 } else {
                     Text(
-                        text = "Iniciar sesión",
+                        text = "Registrarse",
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
@@ -161,7 +196,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             Button(
-                onClick = onNavigateToRegister,
+                onClick = onNavigateToLogin,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent,
                     contentColor = Color(0xFF1DB954)
@@ -169,10 +204,10 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "¿No tienes cuenta? Regístrate",
+                    text = "¿Ya tienes cuenta? Inicia sesión",
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
         }
     }
-}
+} 

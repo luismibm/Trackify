@@ -1,7 +1,15 @@
 package com.trackify.model
 
 import jakarta.persistence.*
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.stereotype.Repository
 import java.util.*
+
+@Repository
+interface TransactionRepository : JpaRepository<Transaction, UUID> {
+    fun findByUserId(userId: UUID): List<Transaction>
+    fun findBySpaceId(spaceId: UUID): List<Transaction>
+}
 
 @Entity
 @Table(name = "transactions")
