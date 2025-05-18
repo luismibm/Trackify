@@ -36,4 +36,10 @@ interface AuthService {
         @Header("Authorization") token: String,
         @Path("spaceId") spaceId: String
     ): List<Transaction>
+    
+    @POST("/api/transactions")
+    suspend fun createTransaction(
+        @Header("Authorization") token: String,
+        @Body request: CreateTransactionRequest
+    ): Transaction
 }

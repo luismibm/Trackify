@@ -18,6 +18,7 @@ import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
@@ -83,7 +84,7 @@ class MainActivity : ComponentActivity() {
                         Screen.BUDGET_BY_CATEGORY -> "Presupuesto por Categoría"
                         Screen.COMPARISON -> "Comparador"
                         Screen.SETTINGS -> "Ajustes"
-                        else -> "Trackify"
+                        else -> ""
                     }
                 }
                 
@@ -189,7 +190,7 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { scaffoldState.drawerState.close() }
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
-                                DrawerItem(icon = Icons.Filled.Face, text = "Transacciones") {
+                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Transacciones") {
                                     if (token.isNotBlank() && spaceId.isNotBlank()) {
                                         currentScreen = Screen.TRANSACTIONS
                                     } else {
@@ -199,7 +200,7 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { scaffoldState.drawerState.close() }
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
-                                DrawerItem(icon = Icons.Filled.Face, text = "Presupuesto por Categoría") {
+                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Presupuesto por Categoría") {
                                     if (token.isNotBlank() && spaceId.isNotBlank()) {
                                         currentScreen = Screen.BUDGET_BY_CATEGORY
                                     } else {
@@ -209,7 +210,7 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { scaffoldState.drawerState.close() }
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
-                                DrawerItem(icon = Icons.Filled.Face, text = "Comparador") {
+                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Comparador") {
                                     if (token.isNotBlank() && spaceId.isNotBlank()) {
                                         currentScreen = Screen.COMPARISON
                                     } else {
@@ -241,7 +242,11 @@ class MainActivity : ComponentActivity() {
                         }
                     ) { innerPadding ->
                         when (currentScreen) {
-                            Screen.HOME -> HomeScreen(modifier = Modifier.padding(innerPadding))
+                            Screen.HOME -> HomeScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                token = token,
+                                spaceId = spaceId
+                            )
                             Screen.TRANSACTIONS -> TransactionsScreen(
                                 modifier = Modifier.padding(innerPadding),
                                 token = token,
