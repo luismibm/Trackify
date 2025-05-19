@@ -48,6 +48,7 @@ data class Transaction(
 data class CreateTransactionRequest(
     val amount: Float,
     val category: String,
+    val objective: String,
     val userId: String,
     val spaceId: String,
     val date: Date? = null

@@ -83,6 +83,7 @@ fun HomeScreen(
     var showCreateTransactionDialog by remember { mutableStateOf(false) }
     var transactionAmountInput by remember { mutableStateOf("") }
     var transactionCategoryInput by remember { mutableStateOf("") }
+    var transactionObjectiveInput by remember { mutableStateOf("") }
 
     LaunchedEffect(key1 = token, key2 = spaceId, key3 = isLoading) {
         if (isLoading && token.isNotBlank() && spaceId.isNotBlank()) {
@@ -135,8 +136,9 @@ fun HomeScreen(
                 showCreateTransactionDialog = false
                 transactionAmountInput = ""
                 transactionCategoryInput = ""
+                transactionObjectiveInput = ""
             },
-            onSaveRequest = { amount, category ->
+            onSaveRequest = { amount, category, objective ->
                 showCreateTransactionDialog = false
                 if (token.isNotBlank() && spaceId.isNotBlank()) {
                     scope.launch {
@@ -147,11 +149,12 @@ fun HomeScreen(
                             val newTransactionRequest = CreateTransactionRequest(
                                 amount = amount,
                                 category = category,
+                                objective = objective,
                                 userId = userId,
                                 spaceId = spaceId,
                                 date = null
                             )
-                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', UserId: '$userId', SpaceId: '$spaceId'")
+                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$objective', UserId: '$userId', SpaceId: '$spaceId'")
                             
                             val createdTransaction = withContext(Dispatchers.IO) {
                                 RetrofitClient.authService.createTransaction("Bearer $token", newTransactionRequest)
@@ -161,6 +164,7 @@ fun HomeScreen(
                             
                             transactionAmountInput = ""
                             transactionCategoryInput = ""
+                            transactionObjectiveInput = ""
 
                             isLoading = true
                         } catch (e: Exception) {
@@ -176,7 +180,9 @@ fun HomeScreen(
             amount = transactionAmountInput,
             onAmountChange = { transactionAmountInput = it },
             category = transactionCategoryInput,
-            onCategoryChange = { transactionCategoryInput = it }
+            onCategoryChange = { transactionCategoryInput = it },
+            objective = transactionObjectiveInput,
+            onObjectiveChange = { transactionObjectiveInput = it }
         )
     }
 
@@ -202,7 +208,7 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (isLoading && categoryPieData.isEmpty()) {
-                CircularProgressIndicator(color = Color.Green)
+                CircularProgressIndicator(color = Color(0xFF1DB954))
             } else if (errorMessage != null) {
                 Text(
                     text = errorMessage!!,
@@ -258,7 +264,7 @@ fun FinancialSummaryText(
     balance: Double,
     formatter: NumberFormat
 ) {
-    val positiveGreen = Color.Green
+    val positiveGreen = Color(0xFF1DB954)
     val negativeRed = Color.Red
 
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
@@ -337,11 +343,13 @@ fun CategoryPercentageChart(entries: List<PieEntry>) {
 @Composable
 fun CreateTransactionDialog(
     onDismissRequest: () -> Unit,
-    onSaveRequest: (amount: Float, category: String) -> Unit,
+    onSaveRequest: (amount: Float, category: String, objective: String) -> Unit,
     amount: String,
     onAmountChange: (String) -> Unit,
     category: String,
-    onCategoryChange: (String) -> Unit
+    onCategoryChange: (String) -> Unit,
+    objective: String,
+    onObjectiveChange: (String) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -366,11 +374,11 @@ fun CreateTransactionDialog(
                     shape = RoundedCornerShape(8.dp),
                     colors = TextFieldDefaults.textFieldColors(
                         textColor = Color.White,
-                        cursorColor = Color.Green,
+                        cursorColor = Color(0xFF1DB954),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        backgroundColor = Color.Gray.copy(alpha = 0.5f),
-                        focusedLabelColor = Color.Green,
+                        backgroundColor = Color.DarkGray,
+                        focusedLabelColor = Color(0xFF1DB954),
                         unfocusedLabelColor = Color.Gray
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -384,11 +392,29 @@ fun CreateTransactionDialog(
                     shape = RoundedCornerShape(8.dp),
                     colors = TextFieldDefaults.textFieldColors(
                         textColor = Color.White,
-                        cursorColor = Color.Green,
+                        cursorColor = Color(0xFF1DB954),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        backgroundColor = Color.Gray.copy(alpha = 0.5f),
-                        focusedLabelColor = Color.Green,
+                        backgroundColor = Color.DarkGray,
+                        focusedLabelColor = Color(0xFF1DB954),
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                TextField(
+                    value = objective,
+                    onValueChange = onObjectiveChange,
+                    label = { Text("Objetivo (opcional)", color = Color.Gray) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.textFieldColors(
+                        textColor = Color.White,
+                        cursorColor = Color(0xFF1DB954),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        backgroundColor = Color.DarkGray,
+                        focusedLabelColor = Color(0xFF1DB954),
                         unfocusedLabelColor = Color.Gray
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -406,7 +432,7 @@ fun CreateTransactionDialog(
                     onClick = onDismissRequest,
                     shape = RoundedCornerShape(8.dp),
                 ) {
-                    Text("Cancelar", color = Color.DarkGray)
+                    Text("Cancelar", color = Color.LightGray)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
@@ -420,16 +446,16 @@ fun CreateTransactionDialog(
                             Toast.makeText(context, "La categoría no puede estar vacía", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        onSaveRequest(amountFloat, category)
+                        onSaveRequest(amountFloat, category, objective)
                     },
                     shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.Green)
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1DB954))
                 ) {
                     Text("Guardar", color = Color.White)
                 }
             }
         },
-        backgroundColor = Color.DarkGray,
+        backgroundColor = Color(0xFF2C2C2C),
         contentColor = Color.White,
         shape = RoundedCornerShape(16.dp),
         properties = DialogProperties(dismissOnBackPress = true, dismissOnClickOutside = true)
