@@ -28,7 +28,7 @@ import java.util.Locale
 import kotlin.math.abs
 
 @Composable
-fun BudgetByCategoryScreen(
+fun BudgetScreen(
     modifier: Modifier = Modifier,
     token: String?,
     spaceId: String?,

@@ -146,15 +146,17 @@ fun HomeScreen(
                             val currentUser = RetrofitClient.authService.getCurrentUser("Bearer $token")
                             val userId = currentUser.id
 
+                            val finalObjective = if (objective.isBlank()) "None" else objective
+
                             val newTransactionRequest = CreateTransactionRequest(
                                 amount = amount,
                                 category = category,
-                                objective = objective,
+                                objective = finalObjective,
                                 userId = userId,
                                 spaceId = spaceId,
                                 date = null
                             )
-                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$objective', UserId: '$userId', SpaceId: '$spaceId'")
+                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$finalObjective', UserId: '$userId', SpaceId: '$spaceId'")
                             
                             val createdTransaction = withContext(Dispatchers.IO) {
                                 RetrofitClient.authService.createTransaction("Bearer $token", newTransactionRequest)
@@ -446,7 +448,8 @@ fun CreateTransactionDialog(
                             Toast.makeText(context, "La categoría no puede estar vacía", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
-                        onSaveRequest(amountFloat, category, objective)
+                        val finalObjectiveOnClick = if (objective.isBlank()) "None" else objective
+                        onSaveRequest(amountFloat, category, finalObjectiveOnClick)
                     },
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1DB954))

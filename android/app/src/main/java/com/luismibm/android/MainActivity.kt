@@ -42,13 +42,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luismibm.android.api.RetrofitClient
+import com.luismibm.android.ui.BudgetScreen
 import com.luismibm.android.ui.LoginScreen
 import com.luismibm.android.ui.HomeScreen
 import com.luismibm.android.ui.RegisterScreen
 import com.luismibm.android.ui.SpaceSelectionScreen
 import com.luismibm.android.ui.TransactionsScreen
-import com.luismibm.android.ui.BudgetByCategoryScreen
-import com.luismibm.android.ui.ComparisonScreen
+import com.luismibm.android.ui.ObjectiveScreen
 import com.luismibm.android.ui.SettingsScreen
 import com.luismibm.android.ui.theme.AndroidTheme
 import kotlinx.coroutines.CoroutineScope
@@ -58,7 +58,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     
     private enum class Screen {
-        LOGIN, REGISTER, SPACE_SELECTION, HOME, TRANSACTIONS, BUDGET_BY_CATEGORY, COMPARISON, SETTINGS
+        LOGIN, REGISTER, SPACE_SELECTION, HOME, TRANSACTIONS, OBJECTIVE, SETTINGS, BUDGETS
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,10 +80,10 @@ class MainActivity : ComponentActivity() {
                     return when (screen) {
                         Screen.HOME -> "Inicio"
                         Screen.TRANSACTIONS -> "Transacciones"
-                        Screen.BUDGET_BY_CATEGORY -> "Presupuesto por Categoría"
-                        Screen.COMPARISON -> "Comparador"
+                        Screen.OBJECTIVE -> "Gastos por Objetivo"
+                        Screen.BUDGETS -> "Presupuesto por Categoría"
                         Screen.SETTINGS -> "Ajustes"
-                        else -> ""
+                        else -> "Trackify"
                     }
                 }
                 
@@ -91,7 +91,8 @@ class MainActivity : ComponentActivity() {
                     androidx.compose.material3.Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         when (currentScreen) {
                             Screen.LOGIN -> LoginScreen(
-                                onLoginSuccess = { accessToken ->
+                                onLoginSuccess = {
+                                    accessToken ->
                                     token = accessToken
                                     CoroutineScope(Dispatchers.Main).launch {
                                         try {
@@ -139,6 +140,7 @@ class MainActivity : ComponentActivity() {
                                                     spaceName = userSpace?.name ?: "Mi Espacio"
                                                 } catch (e: Exception) { spaceName = "Mi Espacio" }
                                             }
+                                            hasSpace = user.spaceId != null
                                             currentScreen = Screen.HOME
                                         } catch (e: Exception) {
                                             Toast.makeText(this@MainActivity, "Error al obtener espacio: ${e.message}", Toast.LENGTH_LONG).show()
@@ -177,7 +179,7 @@ class MainActivity : ComponentActivity() {
                                 horizontalAlignment = Alignment.Start
                             ) {
                                 Text(
-                                    text = "Trackify",
+                                    text = if (spaceName.isNotBlank()) spaceName else "Trackify",
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 28.sp
@@ -199,9 +201,9 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { scaffoldState.drawerState.close() }
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
-                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Presupuesto por Categoría") {
+                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Gastos por Objetivo") {
                                     if (token.isNotBlank() && spaceId.isNotBlank()) {
-                                        currentScreen = Screen.BUDGET_BY_CATEGORY
+                                        currentScreen = Screen.OBJECTIVE
                                     } else {
                                         Toast.makeText(this@MainActivity, "Error: Sesión inválida o espacio no seleccionado.", Toast.LENGTH_LONG).show()
                                         currentScreen = Screen.LOGIN
@@ -209,9 +211,9 @@ class MainActivity : ComponentActivity() {
                                     scope.launch { scaffoldState.drawerState.close() }
                                 }
                                 Spacer(modifier = Modifier.height(16.dp))
-                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Comparador") {
+                                DrawerItem(icon = Icons.Filled.ArrowForward, text = "Budgets") {
                                     if (token.isNotBlank() && spaceId.isNotBlank()) {
-                                        currentScreen = Screen.COMPARISON
+                                        currentScreen = Screen.BUDGETS
                                     } else {
                                         Toast.makeText(this@MainActivity, "Error: Sesión inválida o espacio no seleccionado.", Toast.LENGTH_LONG).show()
                                         currentScreen = Screen.LOGIN
@@ -252,14 +254,17 @@ class MainActivity : ComponentActivity() {
                                 spaceId = spaceId,
                                 onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
-                            Screen.BUDGET_BY_CATEGORY -> BudgetByCategoryScreen(
+                            Screen.OBJECTIVE -> ObjectiveScreen(
                                 modifier = Modifier.padding(innerPadding),
                                 token = token,
                                 spaceId = spaceId,
                                 onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
-                            Screen.COMPARISON -> ComparisonScreen(
-                                modifier = Modifier.padding(innerPadding)
+                            Screen.BUDGETS -> BudgetScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                token = token,
+                                spaceId = spaceId,
+                                onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
                             Screen.SETTINGS -> SettingsScreen(
                                 modifier = Modifier.padding(innerPadding)

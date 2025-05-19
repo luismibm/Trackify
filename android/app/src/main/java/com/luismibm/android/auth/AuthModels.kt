@@ -40,6 +40,7 @@ data class Transaction(
     val id: String,
     val amount: Float,
     val category: String,
+    val objective: String?,
     val userId: String,
     val spaceId: String,
     val date: Date
