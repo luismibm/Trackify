@@ -6,25 +6,22 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface TransactionRepository : JpaRepository<Transaction, UUID> {
-    fun findByUserId(userId: UUID): List<Transaction>
-    fun findBySpaceId(spaceId: UUID): List<Transaction>
+interface BudgetRepository : JpaRepository<Budget, UUID> {
+    fun findByUserId(userId: UUID): List<Budget>
+    fun findBySpaceId(spaceId: UUID): List<Budget>
 }
 
 @Entity
-@Table(name = "transactions")
-class Transaction {
+@Table(name = "budgets")
+class Budget {
     @Id
     var id: UUID = UUID.randomUUID()
     
     @Column(nullable = false)
-    var amount: Float = 0f
+    var name: String = ""
     
     @Column(nullable = false)
-    var category: String = ""
-
-    @Column(nullable = true)
-    var objective: String = ""
+    var amount: Float = 0f
     
     @Column(name = "user_id", nullable = false)
     var userId: UUID = UUID.randomUUID()
@@ -32,27 +29,19 @@ class Transaction {
     @Column(name = "space_id", nullable = false)
     var spaceId: UUID = UUID.randomUUID()
     
-    @Temporal(TemporalType.TIMESTAMP)
-    @Column(nullable = false)
-    var date: Date = Date()
-    
     constructor()
     
     constructor(
         id: UUID = UUID.randomUUID(),
+        name: String,
         amount: Float,
-        category: String,
-        objective: String,
         userId: UUID,
-        spaceId: UUID,
-        date: Date = Date()
+        spaceId: UUID
     ) {
         this.id = id
+        this.name = name
         this.amount = amount
-        this.category = category
-        this.objective = objective
         this.userId = userId
         this.spaceId = spaceId
-        this.date = date
     }
 } 

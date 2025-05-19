@@ -186,11 +186,10 @@ fun HomeScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateTransactionDialog = true },
-                backgroundColor = Color.Green,
-                contentColor = Color.White,
-                modifier = Modifier.padding(16.dp)
+                // containerColor = Color(0xFF1DB954),
+                contentColor = Color.White
             ) {
-                Icon(Icons.Filled.Add, "Añadir transacción")
+                Icon(Icons.Filled.Add, "Añadir transacción", tint = Color.White)
             }
         }
     ) { paddingValues ->

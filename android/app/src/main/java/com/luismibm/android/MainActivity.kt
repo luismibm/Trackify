@@ -19,7 +19,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Menu
@@ -254,7 +253,10 @@ class MainActivity : ComponentActivity() {
                                 onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
                             Screen.BUDGET_BY_CATEGORY -> BudgetByCategoryScreen(
-                                modifier = Modifier.padding(innerPadding)
+                                modifier = Modifier.padding(innerPadding),
+                                token = token,
+                                spaceId = spaceId,
+                                onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
                             Screen.COMPARISON -> ComparisonScreen(
                                 modifier = Modifier.padding(innerPadding)

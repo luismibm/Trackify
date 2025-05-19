@@ -1,6 +1,8 @@
 package com.luismibm.android.auth
 
+import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
@@ -42,4 +44,28 @@ interface AuthService {
         @Header("Authorization") token: String,
         @Body request: CreateTransactionRequest
     ): Transaction
+    
+    @DELETE("/api/transactions/{id}")
+    suspend fun deleteTransaction(
+        @Header("Authorization") token: String,
+        @Path("id") transactionId: String
+    ): Response<Void>
+    
+    @GET("/api/budgets/space/{spaceId}")
+    suspend fun getBudgetsBySpace(
+        @Header("Authorization") token: String,
+        @Path("spaceId") spaceId: String
+    ): List<Budget>
+    
+    @POST("/api/budgets")
+    suspend fun createBudget(
+        @Header("Authorization") token: String,
+        @Body request: CreateBudgetRequest
+    ): Budget
+    
+    @DELETE("/api/budgets/{id}")
+    suspend fun deleteBudget(
+        @Header("Authorization") token: String,
+        @Path("id") budgetId: String
+    ): Response<Void>
 }

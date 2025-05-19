@@ -14,6 +14,7 @@ class APIController(
     private val userRepository: UserRepository,
     private val spaceRepository: SpaceRepository,
     private val transactionRepository: TransactionRepository,
+    private val budgetRepository: BudgetRepository,
     private val encoder: PasswordEncoder
 ) {
 
@@ -82,6 +83,7 @@ class APIController(
         val transaction = Transaction(
             amount = transactionRequest.amount,
             category = transactionRequest.category,
+            objective = transactionRequest.objective,
             userId = transactionRequest.userId,
             spaceId = transactionRequest.spaceId,
             date = transactionRequest.date ?: Date()
@@ -104,6 +106,52 @@ class APIController(
     fun getTransactionsBySpace(@PathVariable spaceId: UUID): ResponseEntity<List<Transaction>> {
         return ResponseEntity.ok(transactionRepository.findBySpaceId(spaceId))
     }
+
+    @DeleteMapping("/transactions/{id}")
+    fun deleteTransaction(@PathVariable id: UUID): ResponseEntity<Void> {
+        if (!transactionRepository.existsById(id)) {
+            return ResponseEntity.notFound().build()
+        }
+        transactionRepository.deleteById(id)
+        return ResponseEntity.noContent().build()
+    }
+
+    // Budget endpoints
+    @PostMapping("/budgets")
+    fun createBudget(@RequestBody budgetRequest: BudgetRequest): ResponseEntity<Budget> {
+        val budget = Budget(
+            name = budgetRequest.name,
+            amount = budgetRequest.amount,
+            userId = budgetRequest.userId,
+            spaceId = budgetRequest.spaceId
+        )
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(budgetRepository.save(budget))
+    }
+
+    @GetMapping("/budgets")
+    fun getAllBudgets(): ResponseEntity<List<Budget>> {
+        return ResponseEntity.ok(budgetRepository.findAll())
+    }
+
+    @GetMapping("/budgets/user/{userId}")
+    fun getBudgetsByUser(@PathVariable userId: UUID): ResponseEntity<List<Budget>> {
+        return ResponseEntity.ok(budgetRepository.findByUserId(userId))
+    }
+
+    @GetMapping("/budgets/space/{spaceId}")
+    fun getBudgetsBySpace(@PathVariable spaceId: UUID): ResponseEntity<List<Budget>> {
+        return ResponseEntity.ok(budgetRepository.findBySpaceId(spaceId))
+    }
+
+    @DeleteMapping("/budgets/{id}")
+    fun deleteBudget(@PathVariable id: UUID): ResponseEntity<Void> {
+        if (!budgetRepository.existsById(id)) {
+            return ResponseEntity.notFound().build()
+        }
+        budgetRepository.deleteById(id)
+        return ResponseEntity.noContent().build()
+    }
 }
 
 // DTO para requests
@@ -125,7 +173,15 @@ data class UpdateSpaceRequest(
 data class TransactionRequest(
     val amount: Float,
     val category: String,
+    val objective: String,
     val userId: UUID,
     val spaceId: UUID,
     val date: Date? = null
+)
+
+data class BudgetRequest(
+    val name: String,
+    val amount: Float,
+    val userId: UUID,
+    val spaceId: UUID
 )
