@@ -105,7 +105,8 @@ class APIController(
             objective = transactionRequest.objective,
             userId = transactionRequest.userId,
             spaceId = transactionRequest.spaceId,
-            date = transactionRequest.date ?: Date()
+            date = transactionRequest.date ?: Date(),
+            description = transactionRequest.description
         )
         
         return ResponseEntity.status(HttpStatus.CREATED).body(transactionRepository.save(transaction))
@@ -200,7 +201,8 @@ data class TransactionRequest(
     val objective: String,
     val userId: UUID,
     val spaceId: UUID,
-    val date: Date? = null
+    val date: Date? = null,
+    val description: String
 )
 
 data class BudgetRequest(

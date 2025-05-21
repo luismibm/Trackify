@@ -194,6 +194,13 @@ fun TransactionCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
+                    text = transaction.description,
+                    color = Color.LightGray,
+                    fontSize = 15.sp,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
                     text = "Fecha: ${dateFormatter.format(transaction.date)}",
                     color = Color.LightGray,
                     fontSize = 14.sp,

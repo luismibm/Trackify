@@ -44,7 +44,8 @@ data class Transaction(
     val objective: String?,
     val userId: String,
     val spaceId: String,
-    val date: Date
+    val date: Date,
+    val description: String
 )
 
 data class CreateTransactionRequest(
@@ -53,7 +54,8 @@ data class CreateTransactionRequest(
     val objective: String,
     val userId: String,
     val spaceId: String,
-    val date: Date? = null
+    val date: Date? = null,
+    val description: String
 )
 
 data class Budget(

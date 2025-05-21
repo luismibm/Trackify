@@ -84,6 +84,7 @@ fun HomeScreen(
     var transactionAmountInput by remember { mutableStateOf("") }
     var transactionCategoryInput by remember { mutableStateOf("") }
     var transactionObjectiveInput by remember { mutableStateOf("") }
+    var transactionDescriptionInput by remember { mutableStateOf("") }
 
     LaunchedEffect(key1 = token, key2 = spaceId, key3 = isLoading) {
         if (isLoading && token.isNotBlank() && spaceId.isNotBlank()) {
@@ -137,8 +138,9 @@ fun HomeScreen(
                 transactionAmountInput = ""
                 transactionCategoryInput = ""
                 transactionObjectiveInput = ""
+                transactionDescriptionInput = ""
             },
-            onSaveRequest = { amount, category, objective ->
+            onSaveRequest = { amount, category, objective, description ->
                 showCreateTransactionDialog = false
                 if (token.isNotBlank() && spaceId.isNotBlank()) {
                     scope.launch {
@@ -154,9 +156,10 @@ fun HomeScreen(
                                 objective = finalObjective,
                                 userId = userId,
                                 spaceId = spaceId,
-                                date = null
+                                date = null,
+                                description = description
                             )
-                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$finalObjective', UserId: '$userId', SpaceId: '$spaceId'")
+                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$finalObjective', UserId: '$userId', SpaceId: '$spaceId', Description: '$description'")
                             
                             val createdTransaction = withContext(Dispatchers.IO) {
                                 RetrofitClient.authService.createTransaction("Bearer $token", newTransactionRequest)
@@ -167,6 +170,7 @@ fun HomeScreen(
                             transactionAmountInput = ""
                             transactionCategoryInput = ""
                             transactionObjectiveInput = ""
+                            transactionDescriptionInput = ""
 
                             isLoading = true
                         } catch (e: Exception) {
@@ -184,7 +188,9 @@ fun HomeScreen(
             category = transactionCategoryInput,
             onCategoryChange = { transactionCategoryInput = it },
             objective = transactionObjectiveInput,
-            onObjectiveChange = { transactionObjectiveInput = it }
+            onObjectiveChange = { transactionObjectiveInput = it },
+            description = transactionDescriptionInput,
+            onDescriptionChange = { transactionDescriptionInput = it }
         )
     }
 
@@ -345,13 +351,15 @@ fun CategoryPercentageChart(entries: List<PieEntry>) {
 @Composable
 fun CreateTransactionDialog(
     onDismissRequest: () -> Unit,
-    onSaveRequest: (amount: Float, category: String, objective: String) -> Unit,
+    onSaveRequest: (amount: Float, category: String, objective: String, description: String) -> Unit,
     amount: String,
     onAmountChange: (String) -> Unit,
     category: String,
     onCategoryChange: (String) -> Unit,
     objective: String,
-    onObjectiveChange: (String) -> Unit
+    onObjectiveChange: (String) -> Unit,
+    description: String,
+    onDescriptionChange: (String) -> Unit
 ) {
     val context = LocalContext.current
 
@@ -421,6 +429,25 @@ fun CreateTransactionDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+                TextField(
+                    value = description,
+                    onValueChange = onDescriptionChange,
+                    label = { Text("Descripción", color = Color.Gray) },
+                    singleLine = false,
+                    maxLines = 3,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = TextFieldDefaults.textFieldColors(
+                        textColor = Color.White,
+                        cursorColor = Color(0xFF1DB954),
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        backgroundColor = Color.DarkGray,
+                        focusedLabelColor = Color(0xFF1DB954),
+                        unfocusedLabelColor = Color.Gray
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         buttons = {
@@ -448,8 +475,12 @@ fun CreateTransactionDialog(
                             Toast.makeText(context, "La categoría no puede estar vacía", Toast.LENGTH_SHORT).show()
                             return@Button
                         }
+                        if (description.isBlank()) {
+                            Toast.makeText(context, "La descripción no puede estar vacía", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
                         val finalObjectiveOnClick = if (objective.isBlank()) "None" else objective
-                        onSaveRequest(amountFloat, category, finalObjectiveOnClick)
+                        onSaveRequest(amountFloat, category, finalObjectiveOnClick, description)
                     },
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1DB954))
