@@ -58,7 +58,13 @@ class APIController(
         val user = userRepository.findByEmail(email)
             ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
         
-        user.spaceId = request.spaceId
+        user.spaceId = request.spaceId?.let {
+            try {
+                UUID.fromString(it)
+            } catch (e: IllegalArgumentException) {
+                return ResponseEntity.badRequest().build()
+            }
+        }
         return ResponseEntity.ok(userRepository.save(user))
     }
     
@@ -66,7 +72,8 @@ class APIController(
     @PostMapping("/spaces")
     fun createSpace(@RequestBody spaceRequest: SpaceRequest): ResponseEntity<Space> {
         val space = Space(
-            name = spaceRequest.name
+            name = spaceRequest.name,
+            accessCode = encoder.encode(spaceRequest.accessCode)
         )
         
         return ResponseEntity.status(HttpStatus.CREATED).body(spaceRepository.save(space))
@@ -75,6 +82,18 @@ class APIController(
     @GetMapping("/spaces")
     fun getAllSpaces(): ResponseEntity<List<Space>> {
         return ResponseEntity.ok(spaceRepository.findAll())
+    }
+
+    @PostMapping("/spaces/{spaceId}/verify")
+    fun verifySpaceAccessCode(@PathVariable spaceId: UUID, @RequestBody verifyRequest: VerifySpaceAccessRequest): ResponseEntity<Void> {
+        val space = spaceRepository.findById(spaceId).orElse(null)
+            ?: return ResponseEntity.status(HttpStatus.NOT_FOUND).build()
+
+        if (encoder.matches(verifyRequest.accessCode, space.accessCode)) {
+            return ResponseEntity.ok().build()
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
     }
     
     // Transaction endpoints
@@ -163,11 +182,16 @@ data class UserRequest(
 )
 
 data class SpaceRequest(
-    val name: String
+    val name: String,
+    val accessCode: String
 )
 
 data class UpdateSpaceRequest(
-    val spaceId: UUID
+    val spaceId: String?
+)
+
+data class VerifySpaceAccessRequest(
+    val accessCode: String
 )
 
 data class TransactionRequest(
