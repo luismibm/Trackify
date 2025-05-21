@@ -19,6 +19,9 @@ class Transaction {
     
     @Column(nullable = false)
     var amount: Float = 0f
+
+    @Column(nullable = false)
+    var description: String = ""
     
     @Column(nullable = false)
     var category: String = ""
@@ -45,7 +48,8 @@ class Transaction {
         objective: String,
         userId: UUID,
         spaceId: UUID,
-        date: Date = Date()
+        date: Date = Date(),
+        description: String
     ) {
         this.id = id
         this.amount = amount
@@ -54,5 +58,6 @@ class Transaction {
         this.userId = userId
         this.spaceId = spaceId
         this.date = date
+        this.description = description
     }
 } 

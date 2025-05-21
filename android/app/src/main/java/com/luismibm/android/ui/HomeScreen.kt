@@ -18,15 +18,12 @@ import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.rememberScaffoldState
+import androidx.compose.material3.Scaffold as M3Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -57,10 +54,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.Locale
+import java.util.Calendar
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.TextButton
 import com.github.mikephil.charting.formatter.PercentFormatter
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
 fun HomeScreen(
@@ -75,8 +77,20 @@ fun HomeScreen(
     var categoryPieData by remember { mutableStateOf<List<PieEntry>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    // Estados para filtro de fechas
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+    
+    // Por defecto, establecemos el rango del último mes
+    val defaultEndDate = calendar.time
+    calendar.add(Calendar.MONTH, -1)
+    val defaultStartDate = calendar.time
+    
+    var startDateText by remember { mutableStateOf(dateFormat.format(defaultStartDate)) }
+    var endDateText by remember { mutableStateOf(dateFormat.format(defaultEndDate)) }
+    var showDateFilterDialog by remember { mutableStateOf(false) }
+
     val currencyFormatter = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
-    val scaffoldState = rememberScaffoldState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -86,19 +100,30 @@ fun HomeScreen(
     var transactionObjectiveInput by remember { mutableStateOf("") }
     var transactionDescriptionInput by remember { mutableStateOf("") }
 
-    LaunchedEffect(key1 = token, key2 = spaceId, key3 = isLoading) {
+    LaunchedEffect(token, spaceId, isLoading, startDateText, endDateText) {
         if (isLoading && token.isNotBlank() && spaceId.isNotBlank()) {
             errorMessage = null
             try {
-                val transactions = withContext(Dispatchers.IO) {
+                val allTransactions = withContext(Dispatchers.IO) {
                     RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
                 }
-
+                
+                val startDate = dateFormat.parse(startDateText)
+                val endDate = dateFormat.parse(endDateText)
+                
+                calendar.time = endDate
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                val adjustedEndDate = calendar.time
+                
+                val filteredTransactions = allTransactions.filter {
+                    it.date >= startDate && it.date < adjustedEndDate
+                }
+                
                 var income = 0.0
                 var expenses = 0.0
                 val expensesByCategory = mutableMapOf<String, Double>()
 
-                transactions.forEach { transaction ->
+                filteredTransactions.forEach { transaction ->
                     if (transaction.amount > 0) {
                         income += transaction.amount
                     } else {
@@ -123,12 +148,86 @@ fun HomeScreen(
                 errorMessage = "Error al cargar datos: ${e.message}"
                 Log.e("HomeScreen", "Error al cargar datos", e)
             } finally {
-                if (isLoading) isLoading = false
+                isLoading = false
             }
         } else if (token.isBlank() || spaceId.isBlank()) {
             errorMessage = "Token o Space ID no disponibles."
-            if (isLoading) isLoading = false
+            isLoading = false
         }
+    }
+
+    if (showDateFilterDialog) {
+        AlertDialog(
+            onDismissRequest = { showDateFilterDialog = false },
+            title = { Text("Filtrar por Fechas", color = Color.White) },
+            text = {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    Text("Fecha de inicio", color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TextField(
+                        value = startDateText,
+                        onValueChange = { startDateText = it },
+                        placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.textFieldColors(
+                            textColor = Color.White,
+                            backgroundColor = Color.DarkGray,
+                            cursorColor = Color(0xFF1DB954),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("Fecha de fin", color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TextField(
+                        value = endDateText,
+                        onValueChange = { endDateText = it },
+                        placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.textFieldColors(
+                            textColor = Color.White,
+                            backgroundColor = Color.DarkGray,
+                            cursorColor = Color(0xFF1DB954),
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        try {
+                            dateFormat.parse(startDateText)
+                            dateFormat.parse(endDateText)
+                            showDateFilterDialog = false
+                            isLoading = true
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Formato de fecha inválido. Use YYYY-MM-DD", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1DB954))
+                ) {
+                    Text("Aplicar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDateFilterDialog = false },
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
+                ) {
+                    Text("Cancelar", color = Color.White)
+                }
+            },
+            backgroundColor = Color(0xFF2C2C2C)
+        )
     }
 
     if (showCreateTransactionDialog) {
@@ -194,13 +293,12 @@ fun HomeScreen(
         )
     }
 
-    Scaffold(
-        scaffoldState = scaffoldState,
-        backgroundColor = Color.Black,
+    M3Scaffold(
+        containerColor = Color.Black,
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showCreateTransactionDialog = true },
-                // containerColor = Color(0xFF1DB954),
+                containerColor = Color(0xFF1DB954),
                 contentColor = Color.White
             ) {
                 Icon(Icons.Filled.Add, "Añadir transacción", tint = Color.White)
@@ -210,7 +308,6 @@ fun HomeScreen(
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .background(Color.Black)
                 .padding(paddingValues)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -226,13 +323,36 @@ fun HomeScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Resumen Financiero",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    
+                    Button(
+                        onClick = { showDateFilterDialog = true },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("Filtrar por Fechas", color = Color.White, fontSize = 12.sp)
+                    }
+                }
+                
                 Text(
-                    text = "Resumen Financiero",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = "Periodo: $startDateText a $endDateText",
+                    fontSize = 14.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+                
+                Spacer(modifier = Modifier.height(8.dp))
 
                 FinancialSummaryText(
                     income = totalIncome,

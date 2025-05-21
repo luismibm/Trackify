@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -24,7 +25,8 @@ import com.luismibm.android.auth.Budget
 import com.luismibm.android.auth.CreateBudgetRequest
 import com.luismibm.android.auth.Transaction
 import kotlinx.coroutines.launch
-import java.util.Locale
+import java.text.SimpleDateFormat
+import java.util.*
 import kotlin.math.abs
 
 @Composable
@@ -46,6 +48,19 @@ fun BudgetScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var budgetToDelete by remember { mutableStateOf<Budget?>(null) }
 
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    val calendar = Calendar.getInstance()
+
+    val defaultEndDate = calendar.time
+    calendar.add(Calendar.MONTH, -1)
+    val defaultStartDate = calendar.time
+    
+    var startDateText by remember { mutableStateOf(dateFormat.format(defaultStartDate)) }
+    var endDateText by remember { mutableStateOf(dateFormat.format(defaultEndDate)) }
+    var showDateFilterDialog by remember { mutableStateOf(false) }
+    
+    val context = LocalContext.current
+
     val spentAmounts = remember(budgets, transactions) {
         budgets.associate { budget ->
             val spent = transactions
@@ -55,12 +70,25 @@ fun BudgetScreen(
         }
     }
 
-    LaunchedEffect(key1 = token, key2 = spaceId) {
+    LaunchedEffect(token, spaceId, startDateText, endDateText) {
         if (token != null && spaceId != null) {
             isLoading = true
             try {
                 budgets = RetrofitClient.authService.getBudgetsBySpace("Bearer $token", spaceId)
-                transactions = RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
+
+                val allTransactions = RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
+
+                val startDate = dateFormat.parse(startDateText)
+                val endDate = dateFormat.parse(endDateText)
+
+                val calendar = Calendar.getInstance()
+                calendar.time = endDate
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                val adjustedEndDate = calendar.time
+
+                transactions = allTransactions.filter { 
+                    it.date >= startDate && it.date < adjustedEndDate
+                }
             } catch (e: Exception) {
                 onError("Error al cargar datos: ${e.message}")
             } finally {
@@ -71,6 +99,78 @@ fun BudgetScreen(
             if (spaceId == null) onError("Por favor, selecciona un espacio primero.")
             isLoading = false
         }
+    }
+
+    if (showDateFilterDialog) {
+        AlertDialog(
+            onDismissRequest = { showDateFilterDialog = false },
+            title = { Text("Filtrar por Fechas", color = Color.White) },
+            text = {
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    Text("Fecha de inicio", color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TextField(
+                        value = startDateText,
+                        onValueChange = { startDateText = it },
+                        placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedContainerColor = Color.DarkGray,
+                            focusedContainerColor = Color.DarkGray,
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text("Fecha de fin", color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    TextField(
+                        value = endDateText,
+                        onValueChange = { endDateText = it },
+                        placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedContainerColor = Color.DarkGray,
+                            focusedContainerColor = Color.DarkGray,
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        try {
+                            dateFormat.parse(startDateText)
+                            dateFormat.parse(endDateText)
+                            showDateFilterDialog = false
+                            isLoading = true
+                        } catch (e: Exception) {
+                            android.widget.Toast.makeText(context, "Formato de fecha inválido. Use YYYY-MM-DD", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954))
+                ) {
+                    Text("Aplicar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { showDateFilterDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
+                ) {
+                    Text("Cancelar", color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF2C2C2C)
+        )
     }
 
     if (showDeleteDialog && budgetToDelete != null) {
@@ -222,7 +322,11 @@ fun BudgetScreen(
                     onClick = { showCreateDialog = true },
                     containerColor = Color(0xFF1DB954)
                 ) {
-                    Icon(Icons.Filled.Add, "Crear presupuesto", tint = Color.White)
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Crear presupuesto",
+                        tint = Color.White
+                    )
                 }
             }
         },
@@ -295,6 +399,15 @@ fun BudgetScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    item {
+                        Text(
+                            text = "Periodo: $startDateText a $endDateText",
+                            fontSize = 14.sp,
+                            color = Color.Gray,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                        )
+                    }
+                    
                     items(budgets) { budget ->
                         val spent = spentAmounts[budget.id] ?: 0f
                         BudgetCard(
