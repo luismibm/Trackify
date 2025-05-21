@@ -18,11 +18,12 @@ data class RegisterRequest(
 )
 
 data class UpdateSpaceRequest(
-    val spaceId: String
+    val spaceId: String?
 )
 
 data class SpaceRequest(
-    val name: String
+    val name: String,
+    val accessCode: String
 )
 
 data class Space(
@@ -68,4 +69,8 @@ data class CreateBudgetRequest(
     val amount: Float,
     val userId: String,
     val spaceId: String
+)
+
+data class VerifySpaceAccessRequest(
+    val accessCode: String
 )

@@ -68,4 +68,11 @@ interface AuthService {
         @Header("Authorization") token: String,
         @Path("id") budgetId: String
     ): Response<Void>
+
+    @POST("/api/spaces/{spaceId}/verify")
+    suspend fun verifySpaceAccessCode(
+        @Header("Authorization") token: String,
+        @Path("spaceId") spaceId: String,
+        @Body request: VerifySpaceAccessRequest
+    ): Response<Void>
 }

@@ -267,7 +267,18 @@ class MainActivity : ComponentActivity() {
                                 onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
                             Screen.SETTINGS -> SettingsScreen(
-                                modifier = Modifier.padding(innerPadding)
+                                modifier = Modifier.padding(innerPadding),
+                                token = token,
+                                currentSpaceName = spaceName,
+                                onLeaveSpace = {
+                                    token = token
+                                    hasSpace = false
+                                    spaceId = ""
+                                    spaceName = ""
+                                    currentScreen = Screen.SPACE_SELECTION
+                                    Toast.makeText(this@MainActivity, "Te has desvinculado del espacio.", Toast.LENGTH_SHORT).show()
+                                },
+                                onError = { Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show() }
                             )
                             else -> { }
                         }

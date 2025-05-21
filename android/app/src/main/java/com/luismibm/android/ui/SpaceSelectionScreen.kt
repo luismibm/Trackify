@@ -51,8 +51,13 @@ fun SpaceSelectionScreen(
     var isLoading by remember { mutableStateOf(true) }
     var isCreatingSpace by remember { mutableStateOf(false) }
     var newSpaceName by remember { mutableStateOf("") }
+    var newSpaceAccessCode by remember { mutableStateOf("") }
     var showCreateForm by remember { mutableStateOf(false) }
     var isUpdatingUserSpace by remember { mutableStateOf(false) }
+    var selectedSpaceForVerification by remember { mutableStateOf<Space?>(null) }
+    var enteredAccessCode by remember { mutableStateOf("") }
+    var verificationError by remember { mutableStateOf<String?>(null) }
+    var isVerifyingAccess by remember { mutableStateOf(false) }
     
     val scope = rememberCoroutineScope()
     
@@ -153,6 +158,33 @@ fun SpaceSelectionScreen(
                     )
                     
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Código de Acceso (secreto)",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextField(
+                        value = newSpaceAccessCode,
+                        onValueChange = { newSpaceAccessCode = it },
+                        placeholder = {
+                            Text(
+                                text = "Ej: 123456",
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedContainerColor = Color.DarkGray,
+                            focusedContainerColor = Color.DarkGray,
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
                     
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -178,7 +210,7 @@ fun SpaceSelectionScreen(
                                 scope.launch {
                                     try {
                                         // Crear nuevo espacio
-                                        val spaceRequest = SpaceRequest(name = newSpaceName)
+                                        val spaceRequest = SpaceRequest(name = newSpaceName, accessCode = newSpaceAccessCode)
                                         val createdSpace = RetrofitClient.authService.createSpace("Bearer $token", spaceRequest)
                                         
                                         // Asignar el espacio al usuario
@@ -192,7 +224,7 @@ fun SpaceSelectionScreen(
                                     }
                                 }
                             },
-                            enabled = newSpaceName.isNotEmpty() && !isCreatingSpace,
+                            enabled = newSpaceName.isNotEmpty() && newSpaceAccessCode.isNotEmpty() && !isCreatingSpace,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF1DB954),
                                 contentColor = Color.White
@@ -213,6 +245,94 @@ fun SpaceSelectionScreen(
                         }
                     }
                 }
+            } else if (selectedSpaceForVerification != null) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Acceder a ${selectedSpaceForVerification!!.name}",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Ingresa el código de acceso:",
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextField(
+                        value = enteredAccessCode,
+                        onValueChange = { enteredAccessCode = it; verificationError = null },
+                        placeholder = { Text("Código de acceso", color = Color.White.copy(alpha = 0.7f)) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedContainerColor = Color.DarkGray,
+                            focusedContainerColor = Color.DarkGray,
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = verificationError != null
+                    )
+                    if (verificationError != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(verificationError!!, color = Color.Red)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = { selectedSpaceForVerification = null; enteredAccessCode = ""; verificationError = null },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.DarkGray,
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Cancelar", modifier = Modifier.padding(vertical = 8.dp))
+                        }
+                        Button(
+                            onClick = {
+                                isVerifyingAccess = true
+                                verificationError = null
+                                scope.launch {
+                                    try {
+                                        val verifyRequest = com.luismibm.android.auth.VerifySpaceAccessRequest(accessCode = enteredAccessCode)
+                                        RetrofitClient.authService.verifySpaceAccessCode(
+                                            "Bearer $token",
+                                            selectedSpaceForVerification!!.id,
+                                            verifyRequest
+                                        )
+                                        // Si la verificación es exitosa, procede a actualizar el espacio del usuario
+                                        val updateRequest = UpdateSpaceRequest(spaceId = selectedSpaceForVerification!!.id)
+                                        RetrofitClient.authService.updateUserSpace("Bearer $token", updateRequest)
+                                        onSpaceSelected()
+                                    } catch (e: Exception) {
+                                        verificationError = "Código incorrecto o error: ${e.message}"
+                                    } finally {
+                                        isVerifyingAccess = false
+                                    }
+                                }
+                            },
+                            enabled = enteredAccessCode.isNotEmpty() && !isVerifyingAccess,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF1DB954),
+                                contentColor = Color.White
+                            ),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            if (isVerifyingAccess) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.padding(vertical = 8.dp))
+                            } else {
+                                Text("Acceder", modifier = Modifier.padding(vertical = 8.dp))
+                            }
+                        }
+                    }
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
@@ -227,18 +347,9 @@ fun SpaceSelectionScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    isUpdatingUserSpace = true
-                                    scope.launch {
-                                        try {
-                                            // Vincular el espacio seleccionado al usuario
-                                            val updateRequest = UpdateSpaceRequest(spaceId = space.id)
-                                            RetrofitClient.authService.updateUserSpace("Bearer $token", updateRequest)
-                                            onSpaceSelected()
-                                        } catch (e: Exception) {
-                                            onError("Error al vincular espacio: ${e.message}")
-                                            isUpdatingUserSpace = false
-                                        }
-                                    }
+                                    selectedSpaceForVerification = space
+                                    enteredAccessCode = ""
+                                    verificationError = null
                                 }
                         ) {
                             Column(
@@ -250,11 +361,6 @@ fun SpaceSelectionScreen(
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp
                                 )
-                                
-                                if (isUpdatingUserSpace) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.align(Alignment.CenterHorizontally))
-                                }
                             }
                         }
                     }
