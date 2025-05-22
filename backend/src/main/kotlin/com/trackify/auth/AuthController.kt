@@ -1,5 +1,9 @@
 package com.trackify.auth
 
+import com.trackify.auth.dto.AuthenticationRequest
+import com.trackify.auth.dto.AuthenticationResponse
+import com.trackify.auth.dto.RefreshTokenRequest
+import com.trackify.auth.dto.TokenResponse
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping

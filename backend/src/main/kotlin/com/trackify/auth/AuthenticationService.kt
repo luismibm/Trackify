@@ -1,5 +1,7 @@
 package com.trackify.auth
 
+import com.trackify.auth.dto.AuthenticationRequest
+import com.trackify.auth.dto.AuthenticationResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.authentication.AuthenticationManager
 import org.springframework.security.authentication.AuthenticationServiceException
