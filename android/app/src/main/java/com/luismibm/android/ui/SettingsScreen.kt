@@ -22,8 +22,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.UpdateSpaceRequest
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.UpdateSpaceRequest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -71,7 +71,7 @@ fun SettingsScreen(
                     scope.launch {
                         try {
                             val request = UpdateSpaceRequest(spaceId = null)
-                            RetrofitClient.authService.updateUserSpace("Bearer $token", request)
+                            ApiClient.apiService.updateUserSpace("Bearer $token", request)
                             onLeaveSpace() // Llama al callback para manejar la navegación y el estado
                         } catch (e: Exception) {
                             onError("Error al desvincularse del espacio: ${e.message}")

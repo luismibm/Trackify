@@ -9,7 +9,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,9 +20,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.CreateTransactionRequest
-import com.luismibm.android.auth.Transaction
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.CreateTransactionRequest
+import com.luismibm.android.models.Transaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,7 +75,7 @@ fun TransactionsScreen(
             isLoading = true
             try {
                 val allTransactions = withContext(Dispatchers.IO) {
-                    RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
+                    ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
                 }
 
                 val startDate = dateFormat.parse(startDateText)
@@ -116,7 +115,7 @@ fun TransactionsScreen(
                     isCreatingTransaction = true
                     coroutineScope.launch {
                         try {
-                            val currentUser = RetrofitClient.authService.getCurrentUser("Bearer $token")
+                            val currentUser = ApiClient.apiService.getCurrentUser("Bearer $token")
                             val userId = currentUser.id
                             val finalObjective = if (objective.isBlank()) "None" else objective
 
@@ -130,7 +129,7 @@ fun TransactionsScreen(
                                 description = description
                             )
                             val createdTransaction = withContext(Dispatchers.IO) {
-                                RetrofitClient.authService.createTransaction("Bearer $token", newTransactionRequest)
+                                ApiClient.apiService.createTransaction("Bearer $token", newTransactionRequest)
                             }
                             transactions = listOf(createdTransaction) + transactions
                             showCreateTransactionDialog = false
@@ -171,7 +170,7 @@ fun TransactionsScreen(
                         coroutineScope.launch {
                             if (token != null) {
                                 try {
-                                    val response = RetrofitClient.authService.deleteTransaction("Bearer $token", transactionToDelete!!.id)
+                                    val response = ApiClient.apiService.deleteTransaction("Bearer $token", transactionToDelete!!.id)
                                     if (response.isSuccessful) {
                                         transactions = transactions.filterNot { it.id == transactionToDelete!!.id }
                                         showDeleteDialog = false

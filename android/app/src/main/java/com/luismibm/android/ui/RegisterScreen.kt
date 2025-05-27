@@ -29,8 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.RegisterRequest
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.RegisterRequest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -164,7 +164,7 @@ fun RegisterScreen(
                     scope.launch {
                         isLoading = true
                         try {
-                            RetrofitClient.authService.register(RegisterRequest(email, password))
+                            ApiClient.apiService.register(RegisterRequest(email, password))
                             onRegisterSuccess()
                         } catch (e: Exception) {
                             onRegisterError("Error: ${e.message}")

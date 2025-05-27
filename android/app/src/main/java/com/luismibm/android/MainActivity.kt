@@ -41,7 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.RetrofitClient
+import com.luismibm.android.api.ApiClient
 import com.luismibm.android.ui.BudgetScreen
 import com.luismibm.android.ui.LoginScreen
 import com.luismibm.android.ui.HomeScreen
@@ -50,7 +50,6 @@ import com.luismibm.android.ui.SpaceSelectionScreen
 import com.luismibm.android.ui.TransactionsScreen
 import com.luismibm.android.ui.ObjectiveScreen
 import com.luismibm.android.ui.SettingsScreen
-import com.luismibm.android.ui.theme.AndroidTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,7 +65,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         
         setContent {
-            AndroidTheme {
                 var currentScreen by remember { mutableStateOf(Screen.LOGIN) }
                 var token by remember { mutableStateOf("") }
                 var hasSpace by remember { mutableStateOf(false) }
@@ -96,12 +94,12 @@ class MainActivity : ComponentActivity() {
                                     token = accessToken
                                     CoroutineScope(Dispatchers.Main).launch {
                                         try {
-                                            val user = RetrofitClient.authService.getCurrentUser("Bearer $accessToken")
+                                            val user = ApiClient.apiService.getCurrentUser("Bearer $accessToken")
                                             hasSpace = user.spaceId != null
                                             if (hasSpace && user.spaceId != null) {
                                                 spaceId = user.spaceId
                                                 try {
-                                                    val spaces = RetrofitClient.authService.getSpaces("Bearer $accessToken")
+                                                    val spaces = ApiClient.apiService.getSpaces("Bearer $accessToken")
                                                     val userSpace = spaces.find { it.id == spaceId }
                                                     spaceName = userSpace?.name ?: "Mi Espacio"
                                                 } catch (e: Exception) { spaceName = "Mi Espacio" }
@@ -131,11 +129,11 @@ class MainActivity : ComponentActivity() {
                                 onSpaceSelected = {
                                     CoroutineScope(Dispatchers.Main).launch {
                                         try {
-                                            val user = RetrofitClient.authService.getCurrentUser("Bearer $token")
+                                            val user = ApiClient.apiService.getCurrentUser("Bearer $token")
                                             if (user.spaceId != null) {
                                                 spaceId = user.spaceId
                                                 try {
-                                                    val spaces = RetrofitClient.authService.getSpaces("Bearer $token")
+                                                    val spaces = ApiClient.apiService.getSpaces("Bearer $token")
                                                     val userSpace = spaces.find { it.id == spaceId }
                                                     spaceName = userSpace?.name ?: "Mi Espacio"
                                                 } catch (e: Exception) { spaceName = "Mi Espacio" }
@@ -284,7 +282,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-            }
+
         }
     }
 }

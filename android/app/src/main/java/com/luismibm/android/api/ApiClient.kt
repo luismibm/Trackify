@@ -1,23 +1,20 @@
 package com.luismibm.android.api
 
 import com.luismibm.android.BuildConfig
-import com.luismibm.android.auth.AuthService
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-object RetrofitClient {
-
-    private const val BASE_URL = BuildConfig.BASE_URL
+object ApiClient {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BuildConfig.BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
-    val authService: AuthService by lazy {
-        retrofit.create(AuthService::class.java)
+    val apiService: ApiService by lazy {
+        retrofit.create(ApiService::class.java)
     }
 
 }

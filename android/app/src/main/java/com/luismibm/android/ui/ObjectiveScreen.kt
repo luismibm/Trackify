@@ -22,7 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.mikephil.charting.data.PieEntry
-import com.luismibm.android.api.RetrofitClient
+import com.luismibm.android.api.ApiClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
@@ -59,7 +59,7 @@ fun ObjectiveScreen(
             errorMessage = null
             try {
                 val allTransactions = withContext(Dispatchers.IO) {
-                    RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
+                    ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
                 }
                 
                 val startDate = dateFormat.parse(startDateText)

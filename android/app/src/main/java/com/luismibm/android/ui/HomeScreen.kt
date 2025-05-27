@@ -3,7 +3,6 @@ package com.luismibm.android.ui
 import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,8 +47,8 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.utils.ColorTemplate
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.CreateTransactionRequest
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.CreateTransactionRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -105,7 +104,7 @@ fun HomeScreen(
             errorMessage = null
             try {
                 val allTransactions = withContext(Dispatchers.IO) {
-                    RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
+                    ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
                 }
                 
                 val startDate = dateFormat.parse(startDateText)
@@ -244,7 +243,7 @@ fun HomeScreen(
                 if (token.isNotBlank() && spaceId.isNotBlank()) {
                     scope.launch {
                         try {
-                            val currentUser = RetrofitClient.authService.getCurrentUser("Bearer $token")
+                            val currentUser = ApiClient.apiService.getCurrentUser("Bearer $token")
                             val userId = currentUser.id
 
                             val finalObjective = if (objective.isBlank()) "None" else objective
@@ -261,7 +260,7 @@ fun HomeScreen(
                             Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$finalObjective', UserId: '$userId', SpaceId: '$spaceId', Description: '$description'")
                             
                             val createdTransaction = withContext(Dispatchers.IO) {
-                                RetrofitClient.authService.createTransaction("Bearer $token", newTransactionRequest)
+                                ApiClient.apiService.createTransaction("Bearer $token", newTransactionRequest)
                             }
                             Log.d("HomeScreen", "Transacción creada: ${createdTransaction.id}")
                             Toast.makeText(context, "Transacción creada: ${createdTransaction.category} ${createdTransaction.amount}", Toast.LENGTH_LONG).show()

@@ -20,10 +20,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.Budget
-import com.luismibm.android.auth.CreateBudgetRequest
-import com.luismibm.android.auth.Transaction
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.Budget
+import com.luismibm.android.models.CreateBudgetRequest
+import com.luismibm.android.models.Transaction
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -74,9 +74,9 @@ fun BudgetScreen(
         if (token != null && spaceId != null) {
             isLoading = true
             try {
-                budgets = RetrofitClient.authService.getBudgetsBySpace("Bearer $token", spaceId)
+                budgets = ApiClient.apiService.getBudgetsBySpace("Bearer $token", spaceId)
 
-                val allTransactions = RetrofitClient.authService.getTransactionsBySpace("Bearer $token", spaceId)
+                val allTransactions = ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
 
                 val startDate = dateFormat.parse(startDateText)
                 val endDate = dateFormat.parse(endDateText)
@@ -184,7 +184,7 @@ fun BudgetScreen(
                         coroutineScope.launch {
                             if (token != null) {
                                 try {
-                                    val response = RetrofitClient.authService.deleteBudget("Bearer $token", budgetToDelete!!.id)
+                                    val response = ApiClient.apiService.deleteBudget("Bearer $token", budgetToDelete!!.id)
                                     if (response.isSuccessful) {
                                         budgets = budgets.filterNot { it.id == budgetToDelete!!.id }
                                         showDeleteDialog = false
@@ -268,7 +268,7 @@ fun BudgetScreen(
                         if (token != null && spaceId != null && budgetName.isNotBlank() && amountFloat != null) {
                             coroutineScope.launch {
                                 try {
-                                    val currentUser = RetrofitClient.authService.getCurrentUser("Bearer $token")
+                                    val currentUser = ApiClient.apiService.getCurrentUser("Bearer $token")
                                     val userId = currentUser.id
 
                                     val newBudgetRequest = CreateBudgetRequest(
@@ -277,7 +277,7 @@ fun BudgetScreen(
                                         userId = userId,
                                         spaceId = spaceId
                                     )
-                                    val createdBudget = RetrofitClient.authService.createBudget(
+                                    val createdBudget = ApiClient.apiService.createBudget(
                                         "Bearer $token",
                                         newBudgetRequest
                                     )

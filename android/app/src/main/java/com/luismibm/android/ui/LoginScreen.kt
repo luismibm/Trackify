@@ -29,8 +29,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.AuthRequest
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.AuthRequest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -129,7 +129,7 @@ fun LoginScreen(
                     scope.launch {
                         isLoading = true
                         try {
-                            val response = RetrofitClient.authService.login(AuthRequest(email, password))
+                            val response = ApiClient.apiService.login(AuthRequest(email, password))
                             onLoginSuccess(response.accessToken)
                         } catch (e: Exception) {
                             onLoginError("Error: ${e.message}")

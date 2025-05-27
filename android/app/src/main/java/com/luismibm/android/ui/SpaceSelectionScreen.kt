@@ -35,10 +35,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.RetrofitClient
-import com.luismibm.android.auth.Space
-import com.luismibm.android.auth.SpaceRequest
-import com.luismibm.android.auth.UpdateSpaceRequest
+import com.luismibm.android.api.ApiClient
+import com.luismibm.android.models.Space
+import com.luismibm.android.models.SpaceRequest
+import com.luismibm.android.models.UpdateSpaceRequest
 import kotlinx.coroutines.launch
 
 @Composable
@@ -63,7 +63,7 @@ fun SpaceSelectionScreen(
     
     LaunchedEffect(key1 = token) {
         try {
-            spaces = RetrofitClient.authService.getSpaces("Bearer $token")
+            spaces = ApiClient.apiService.getSpaces("Bearer $token")
             isLoading = false
         } catch (e: Exception) {
             onError("Error al cargar espacios: ${e.message}")
@@ -211,11 +211,11 @@ fun SpaceSelectionScreen(
                                     try {
                                         // Crear nuevo espacio
                                         val spaceRequest = SpaceRequest(name = newSpaceName, accessCode = newSpaceAccessCode)
-                                        val createdSpace = RetrofitClient.authService.createSpace("Bearer $token", spaceRequest)
+                                        val createdSpace = ApiClient.apiService.createSpace("Bearer $token", spaceRequest)
                                         
                                         // Asignar el espacio al usuario
                                         val updateRequest = UpdateSpaceRequest(spaceId = createdSpace.id)
-                                        RetrofitClient.authService.updateUserSpace("Bearer $token", updateRequest)
+                                        ApiClient.apiService.updateUserSpace("Bearer $token", updateRequest)
                                         
                                         onSpaceSelected()
                                     } catch (e: Exception) {
@@ -301,15 +301,15 @@ fun SpaceSelectionScreen(
                                 verificationError = null
                                 scope.launch {
                                     try {
-                                        val verifyRequest = com.luismibm.android.auth.VerifySpaceAccessRequest(accessCode = enteredAccessCode)
-                                        RetrofitClient.authService.verifySpaceAccessCode(
+                                        val verifyRequest = com.luismibm.android.models.VerifySpaceAccessRequest(accessCode = enteredAccessCode)
+                                        ApiClient.apiService.verifySpaceAccessCode(
                                             "Bearer $token",
                                             selectedSpaceForVerification!!.id,
                                             verifyRequest
                                         )
                                         // Si la verificación es exitosa, procede a actualizar el espacio del usuario
                                         val updateRequest = UpdateSpaceRequest(spaceId = selectedSpaceForVerification!!.id)
-                                        RetrofitClient.authService.updateUserSpace("Bearer $token", updateRequest)
+                                        ApiClient.apiService.updateUserSpace("Bearer $token", updateRequest)
                                         onSpaceSelected()
                                     } catch (e: Exception) {
                                         verificationError = "Código incorrecto o error: ${e.message}"

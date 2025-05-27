@@ -1,5 +1,17 @@
-package com.luismibm.android.auth
+package com.luismibm.android.api
 
+import com.luismibm.android.models.Budget
+import com.luismibm.android.models.CreateBudgetRequest
+import com.luismibm.android.models.CreateTransactionRequest
+import com.luismibm.android.models.Space
+import com.luismibm.android.models.SpaceRequest
+import com.luismibm.android.models.Transaction
+import com.luismibm.android.models.UpdateSpaceRequest
+import com.luismibm.android.models.UserResponse
+import com.luismibm.android.models.VerifySpaceAccessRequest
+import com.luismibm.android.models.AuthRequest
+import com.luismibm.android.models.AuthResponse
+import com.luismibm.android.models.RegisterRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -8,7 +20,7 @@ import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Path
 
-interface AuthService {
+interface ApiService {
     @POST("/api/auth")
     suspend fun login(@Body request: AuthRequest): AuthResponse
     
