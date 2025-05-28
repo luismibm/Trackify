@@ -12,10 +12,10 @@ import org.springframework.stereotype.Service
 import java.util.*
 
 @Service
-class AuthenticationService (
+class AuthService (
     private val authManager: AuthenticationManager,
     private val userDetailsService: UserDetailsService,
-    private val tokenService: TokenService,
+    private val jwtTokenService: JwtTokenService,
     private val refreshTokenRepository: RefreshTokenRepository,
     @Value("\${jwt.accessTokenExpiration}") private val accessTokenExpiration: Long = 0,
     @Value("\${jwt.refreshTokenExpiration}") private val refreshTokenExpiration: Long = 0
@@ -44,7 +44,7 @@ class AuthenticationService (
     }
 
     fun refreshAccessToken(refreshToken: String): String {
-        val username = tokenService.extractUsername(refreshToken)
+        val username = jwtTokenService.extractUsername(refreshToken)
 
         return username.let { user ->
             val currentUserDetails = userDetailsService.loadUserByUsername(user)
@@ -58,13 +58,13 @@ class AuthenticationService (
     }
 
     private fun createAccessToken(user: UserDetails): String {
-        return tokenService.generateToken(
+        return jwtTokenService.generateToken(
             subject = user.username,
             expiration = Date(System.currentTimeMillis() + accessTokenExpiration)
         )
     }
 
-    private fun createRefreshToken(user: UserDetails) = tokenService.generateToken(
+    private fun createRefreshToken(user: UserDetails) = jwtTokenService.generateToken(
         subject = user.username,
         expiration = Date(System.currentTimeMillis()+ refreshTokenExpiration)
     )

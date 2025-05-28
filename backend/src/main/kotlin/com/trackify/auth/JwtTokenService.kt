@@ -9,7 +9,7 @@ import javax.crypto.spec.SecretKeySpec
 import io.jsonwebtoken.Jwts
 
 @Service
-class TokenService (
+class JwtTokenService (
     @Value("\${jwt.secret}") private val secret: String = ""
 ) {
 
