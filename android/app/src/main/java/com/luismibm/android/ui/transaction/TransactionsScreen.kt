@@ -20,78 +20,88 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.luismibm.android.api.ApiClient
-import com.luismibm.android.models.CreateTransactionRequest
 import com.luismibm.android.models.Transaction
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import com.luismibm.android.MainViewModel
 
 @Composable
 fun TransactionsScreen(
-    viewModel: TransactionViewModel,
+    mainViewModel: MainViewModel,
+    transactionViewModel: TransactionViewModel,
     modifier: Modifier = Modifier,
     token: String?,
     spaceId: String?,
     onError: (String) -> Unit
 ) {
-    val transactions by viewModel.transactions
-    val isLoading by viewModel.isLoading
-    val showDeleteDialog by viewModel.showDeleteDialog
-    val transactionToDelete by viewModel.transactionToDelete
-    val showCreateTransactionDialog by viewModel.showCreateTransactionDialog
-    val isCreatingTransaction by viewModel.isCreatingTransaction
-    val transactionAmountInput by viewModel.transactionAmountInput
-    val transactionCategoryInput by viewModel.transactionCategoryInput
-    val transactionObjectiveInput by viewModel.transactionObjectiveInput
-    val transactionDescriptionInput by viewModel.transactionDescriptionInput
-    val startDateText by viewModel.startDateText
-    val endDateText by viewModel.endDateText
-    val showDateFilterDialog by viewModel.showDateFilterDialog
+    val transactions by transactionViewModel.transactions
+    val isLoading by transactionViewModel.isLoading
+    val showDeleteDialog by transactionViewModel.showDeleteDialog
+    val transactionToDelete by transactionViewModel.transactionToDelete
+    val showCreateTransactionDialog by transactionViewModel.showCreateTransactionDialog
+    val isCreatingTransaction by transactionViewModel.isCreatingTransaction
+    val transactionAmountInput by transactionViewModel.transactionAmountInput
+    val transactionCategoryInput by transactionViewModel.transactionCategoryInput
+    val transactionObjectiveInput by transactionViewModel.transactionObjectiveInput
+    val transactionDescriptionInput by transactionViewModel.transactionDescriptionInput
+    val showDateFilterDialog by transactionViewModel.showDateFilterDialog
 
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val context = LocalContext.current
 
-    LaunchedEffect(token, spaceId, startDateText, endDateText) {
-        viewModel.loadTransactions(token, spaceId, onError)
+    // Usar las fechas de MainViewModel
+    val startDateText by mainViewModel.startDateText.collectAsState()
+    val endDateText by mainViewModel.endDateText.collectAsState()
+    val dateFilterChanged by mainViewModel.dateFilterChanged.collectAsState()
+
+// Variables temporales para el diálogo
+    var tempStartDateText by remember { mutableStateOf(startDateText) }
+    var tempEndDateText by remember { mutableStateOf(endDateText) }
+
+// Actualizar las variables temporales cuando cambien las fechas del MainViewModel
+    LaunchedEffect(startDateText, endDateText) {
+        tempStartDateText = startDateText
+        tempEndDateText = endDateText
+    }
+
+    LaunchedEffect(token, spaceId, dateFilterChanged) {
+        transactionViewModel.loadTransactions(token, spaceId, startDateText, endDateText, onError)
     }
 
     if (showCreateTransactionDialog) {
         CreateTransactionDialog(
             onDismissRequest = {
-                viewModel.toggleCreateTransactionDialog(false)
+                transactionViewModel.toggleCreateTransactionDialog(false)
             },
             onSaveRequest = { amount, category, objective, description ->
-                viewModel.createTransaction(
+                transactionViewModel.createTransaction(
                     amount, category, objective, description,
                     token, spaceId, onError
                 )
             },
             amount = transactionAmountInput,
-            onAmountChange = { viewModel.onTransactionAmountInputChange(it) },
+            onAmountChange = { transactionViewModel.onTransactionAmountInputChange(it) },
             category = transactionCategoryInput,
-            onCategoryChange = { viewModel.onTransactionCategoryInputChange(it) },
+            onCategoryChange = { transactionViewModel.onTransactionCategoryInputChange(it) },
             objective = transactionObjectiveInput,
-            onObjectiveChange = { viewModel.onTransactionObjectiveInputChange(it) },
+            onObjectiveChange = { transactionViewModel.onTransactionObjectiveInputChange(it) },
             description = transactionDescriptionInput,
-            onDescriptionChange = { viewModel.onTransactionDescriptionInputChange(it) },
+            onDescriptionChange = { transactionViewModel.onTransactionDescriptionInputChange(it) },
             isLoading = isCreatingTransaction
         )
     }
 
     if (showDeleteDialog && transactionToDelete != null) {
         AlertDialog(
-            onDismissRequest = { viewModel.setTransactionToDelete(null) },
+            onDismissRequest = { transactionViewModel.setTransactionToDelete(null) },
             title = { Text("Confirmar Eliminación", color = Color.White) },
             text = { Text("¿Estás seguro de que quieres eliminar esta transacción: ${transactionToDelete!!.category} (${String.format(Locale.GERMAN, "%.2f", transactionToDelete!!.amount)}€)?", color = Color.LightGray) },
             confirmButton = {
                 Button(
-                    onClick = { viewModel.deleteTransaction(token,onError) },
+                    onClick = { transactionViewModel.deleteTransaction(token,onError) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
                     Text("Eliminar", color = Color.White)
@@ -99,7 +109,7 @@ fun TransactionsScreen(
             },
             dismissButton = {
                 Button(
-                    onClick = { viewModel.setTransactionToDelete(null) },
+                    onClick = { transactionViewModel.setTransactionToDelete(null) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) {
                     Text("Cancelar", color = Color.White)
@@ -111,15 +121,15 @@ fun TransactionsScreen(
 
     if (showDateFilterDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.toggleDateFilterDialog(false) },
+            onDismissRequest = { transactionViewModel.toggleDateFilterDialog(false) },
             title = { Text("Filtrar por Fechas", color = Color.White) },
             text = {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     Text("Fecha de inicio", color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
-                        value = startDateText,
-                        onValueChange = { viewModel.onStartDateTextChange(it) },
+                        value = tempStartDateText,
+                        onValueChange = { tempStartDateText = it },
                         placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
@@ -137,8 +147,8 @@ fun TransactionsScreen(
                     Text("Fecha de fin", color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
-                        value = endDateText,
-                        onValueChange = { viewModel.onEndDateTextChange(it) },
+                        value = tempEndDateText,
+                        onValueChange = { tempEndDateText = it },
                         placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
@@ -154,7 +164,10 @@ fun TransactionsScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = { viewModel.applyDateFilter(onError) },
+                    onClick = {
+                        mainViewModel.updateDateFilter(tempStartDateText, tempEndDateText)
+                        transactionViewModel.applyDateFilter(mainViewModel, onError)
+                    },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954))
                 ) {
                     Text("Aplicar", color = Color.White)
@@ -162,7 +175,7 @@ fun TransactionsScreen(
             },
             dismissButton = {
                 Button(
-                    onClick = { viewModel.toggleDateFilterDialog(false) },
+                    onClick = { transactionViewModel.toggleDateFilterDialog(false) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) {
                     Text("Cancelar", color = Color.White)
@@ -176,7 +189,7 @@ fun TransactionsScreen(
         floatingActionButton = {
             if (token != null && spaceId != null) {
                 FloatingActionButton(
-                    onClick = { viewModel.toggleCreateTransactionDialog(true) },
+                    onClick = { transactionViewModel.toggleCreateTransactionDialog(true) },
                     containerColor = Color(0xFF1DB954),
                     contentColor = Color.White
                 ) {
@@ -252,7 +265,7 @@ fun TransactionsScreen(
                         TransactionCard(
                             transaction = transaction,
                             dateFormatter = dateFormatter,
-                            onDeleteClicked = { viewModel.setTransactionToDelete(it) }
+                            onDeleteClicked = { transactionViewModel.setTransactionToDelete(it) }
                         )
                     }
                 }

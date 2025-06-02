@@ -5,6 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.luismibm.android.MainViewModel
 import com.luismibm.android.api.ApiClient
 import com.luismibm.android.models.CreateTransactionRequest
 import com.luismibm.android.models.Transaction
@@ -119,7 +120,7 @@ class TransactionViewModel : ViewModel() {
         _transactionDescriptionInput.value = ""
     }
 
-    fun loadTransactions(token: String?, spaceId: String?, onError: (String) -> Unit) {
+    fun loadTransactions(token: String?, spaceId: String?, startDateStr: String, endDateStr: String, onError: (String) -> Unit) {
         if (token == null || spaceId == null) {
             if (token == null) onError("Token no disponible. Por favor, inicia sesión de nuevo.")
             if (spaceId == null) onError("Por favor, selecciona un espacio para ver las transacciones.")
@@ -129,6 +130,8 @@ class TransactionViewModel : ViewModel() {
 
         _token.value = token
         _spaceId.value = spaceId
+        _startDateText.value = startDateStr
+        _endDateText.value = endDateStr
 
         viewModelScope.launch {
             _isLoading.value = true
@@ -137,8 +140,8 @@ class TransactionViewModel : ViewModel() {
                     ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
                 }
 
-                val startDate = dateFormat.parse(_startDateText.value)
-                val endDate = dateFormat.parse(_endDateText.value)
+                val startDate = dateFormat.parse(startDateStr)
+                val endDate = dateFormat.parse(endDateStr)
 
                 val calendar = Calendar.getInstance()
                 calendar.time = endDate
@@ -157,12 +160,12 @@ class TransactionViewModel : ViewModel() {
         }
     }
 
-    fun applyDateFilter(onError: (String) -> Unit) {
+    fun applyDateFilter(mainViewModel: MainViewModel, onError: (String) -> Unit) {
         try {
             dateFormat.parse(_startDateText.value)
             dateFormat.parse(_endDateText.value)
             _showDateFilterDialog.value = false
-            loadTransactions(_token.value, _spaceId.value, onError)
+            loadTransactions(_token.value, _spaceId.value, mainViewModel.startDateText.value, mainViewModel.endDateText.value, onError)
         } catch (e: Exception) {
             onError("Formato de fecha inválido. Use YYYY-MM-DD")
         }

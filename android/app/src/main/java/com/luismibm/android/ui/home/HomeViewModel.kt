@@ -38,26 +38,11 @@ class HomeViewModel : ViewModel() {
     private val _errorMessage = mutableStateOf<String?>(null)
     val errorMessage: State<String?> = _errorMessage
 
+    private val _startDateText = mutableStateOf("")
+    private val _endDateText = mutableStateOf("")
+
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     private val calendar = Calendar.getInstance()
-
-    private val _startDateText = mutableStateOf("")
-    val startDateText: State<String> = _startDateText
-
-    private val _endDateText = mutableStateOf("")
-    val endDateText: State<String> = _endDateText
-
-    init {
-        val defaultEndDate = calendar.time
-        calendar.add(Calendar.MONTH, -1)
-        val defaultStartDate = calendar.time
-
-        _startDateText.value = dateFormat.format(defaultStartDate)
-        _endDateText.value = dateFormat.format(defaultEndDate)
-    }
-
-    private val _showDateFilterDialog = mutableStateOf(false)
-    val showDateFilterDialog: State<Boolean> = _showDateFilterDialog
 
     private val _showCreateTransactionDialog = mutableStateOf(false)
     val showCreateTransactionDialog: State<Boolean> = _showCreateTransactionDialog
@@ -74,17 +59,6 @@ class HomeViewModel : ViewModel() {
     private val _transactionDescriptionInput = mutableStateOf("")
     val transactionDescriptionInput: State<String> = _transactionDescriptionInput
 
-    fun onStartDateTextChange(date: String) {
-        _startDateText.value = date
-    }
-
-    fun onEndDateTextChange(date: String) {
-        _endDateText.value = date
-    }
-
-    fun toggleDateFilterDialog(show: Boolean) {
-        _showDateFilterDialog.value = show
-    }
 
     fun toggleCreateTransactionDialog(show: Boolean) {
         _showCreateTransactionDialog.value = show
@@ -116,18 +90,7 @@ class HomeViewModel : ViewModel() {
         _transactionDescriptionInput.value = ""
     }
 
-    fun applyDateFilter() {
-        try {
-            dateFormat.parse(_startDateText.value)
-            dateFormat.parse(_endDateText.value)
-            _showDateFilterDialog.value = false
-            loadData(_token.value, _spaceId.value)
-        } catch (e: Exception) {
-            _errorMessage.value = "Formato de fecha inválido. Use YYYY-MM-DD"
-        }
-    }
-
-    fun loadData(token: String? = null, spaceId: String? = null) {
+    fun loadData(token: String? = null, spaceId: String? = null, startDateStr: String, endDateStr: String) {
         if (token.isNullOrBlank() || spaceId.isNullOrBlank()) {
             _errorMessage.value = "Token o Space ID no disponibles."
             _isLoading.value = false
@@ -145,8 +108,8 @@ class HomeViewModel : ViewModel() {
                     ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
                 }
 
-                val startDate = dateFormat.parse(_startDateText.value)
-                val endDate = dateFormat.parse(_endDateText.value)
+                val startDate = dateFormat.parse(startDateStr)
+                val endDate = dateFormat.parse(endDateStr)
 
                 val calendar = Calendar.getInstance()
                 calendar.time = endDate
@@ -237,7 +200,7 @@ class HomeViewModel : ViewModel() {
                 resetTransactionInputs()
                 _showCreateTransactionDialog.value = false
                 onSuccess("Transacción creada: ${createdTransaction.category} ${createdTransaction.amount}")
-                loadData(token, spaceId)
+                loadData(token, spaceId, _startDateText.value, _endDateText.value)
 
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "Error al crear transacción: ${e.message}", e)

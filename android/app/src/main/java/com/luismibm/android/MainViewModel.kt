@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

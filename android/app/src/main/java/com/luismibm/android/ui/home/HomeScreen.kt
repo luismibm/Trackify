@@ -1,6 +1,5 @@
 package com.luismibm.android.ui.home
 
-import android.util.Log
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
@@ -47,14 +46,9 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.utils.ColorTemplate
-import com.luismibm.android.api.ApiClient
-import com.luismibm.android.models.CreateTransactionRequest
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.util.Locale
-import java.util.Calendar
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.TextButton
 import com.github.mikephil.charting.formatter.PercentFormatter
@@ -63,27 +57,33 @@ import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
-import com.luismibm.android.ui.MainViewModel
+import com.luismibm.android.MainViewModel
 
 @Composable
 fun HomeScreen(
     mainViewModel: MainViewModel,
+    homeViewModel: HomeViewModel,
     modifier: Modifier = Modifier,
     token: String,
     spaceId: String
 ) {
-    var isLoading by remember { mutableStateOf(true) }
-    var totalIncome by remember { mutableStateOf(0.0) }
-    var totalExpenses by remember { mutableStateOf(0.0) }
-    var balance by remember { mutableStateOf(0.0) }
-    var categoryPieData by remember { mutableStateOf<List<PieEntry>>(emptyList()) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showDateFilterDialog by remember { mutableStateOf(false) }
+    val isLoading by homeViewModel.isLoading
+    val totalIncome by homeViewModel.totalIncome
+    val totalExpenses by homeViewModel.totalExpenses
+    val balance by homeViewModel.balance
+    val categoryPieData by homeViewModel.categoryPieData
+    val errorMessage by homeViewModel.errorMessage
+    val showCreateTransactionDialog by homeViewModel.showCreateTransactionDialog
+    val transactionAmountInput by homeViewModel.transactionAmountInput
+    val transactionCategoryInput by homeViewModel.transactionCategoryInput
+    val transactionObjectiveInput by homeViewModel.transactionObjectiveInput
+    val transactionDescriptionInput by homeViewModel.transactionDescriptionInput
 
     val startDateText by mainViewModel.startDateText.collectAsState()
     val endDateText by mainViewModel.endDateText.collectAsState()
     val dateFilterChanged by mainViewModel.dateFilterChanged.collectAsState()
 
+    var showDateFilterDialog by remember { mutableStateOf(false) }
     var tempStartDateText by remember { mutableStateOf(startDateText) }
     var tempEndDateText by remember { mutableStateOf(endDateText) }
 
@@ -91,74 +91,11 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var showCreateTransactionDialog by remember { mutableStateOf(false) }
-    var transactionAmountInput by remember { mutableStateOf("") }
-    var transactionCategoryInput by remember { mutableStateOf("") }
-    var transactionObjectiveInput by remember { mutableStateOf("") }
-    var transactionDescriptionInput by remember { mutableStateOf("") }
-
     var chartKey by remember { mutableStateOf(0) }
 
     LaunchedEffect(token, spaceId, isLoading, dateFilterChanged) {
-        if (isLoading && token.isNotBlank() && spaceId.isNotBlank()) {
-            errorMessage = null
-            try {
-                val allTransactions = withContext(Dispatchers.IO) {
-                    ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
-                }
-                
-                val startDate = mainViewModel.getDateFormat().parse(startDateText)
-                val endDate = mainViewModel.getDateFormat().parse(endDateText)
-
-                val calendar = Calendar.getInstance()
-                calendar.time = endDate
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                val adjustedEndDate = calendar.time
-
-
-                
-                val filteredTransactions = allTransactions.filter {
-                    it.date >= startDate && it.date < adjustedEndDate
-                }
-
-                var income = 0.0
-                var expenses = 0.0
-                val expensesByCategory = mutableMapOf<String, Double>()
-
-                filteredTransactions.forEach { transaction ->
-                    if (transaction.amount > 0) {
-                        income += transaction.amount
-                    } else {
-                        expenses += transaction.amount
-                        val category = transaction.category ?: "Sin Categoría"
-                        expensesByCategory[category] = (expensesByCategory[category] ?: 0.0) + transaction.amount
-                    }
-                }
-
-                totalIncome = income
-                totalExpenses = expenses
-                balance = income + expenses
-
-
-
-                val pieEntries = expensesByCategory
-                    .filter { it.value < 0 }
-                    .map { (category, amount) -> PieEntry(kotlin.math.abs(amount.toFloat()), category) }
-                    .filter { it.value > 0 }
-
-                categoryPieData = pieEntries
-
-                chartKey++ // Chart Update
-
-            } catch (e: Exception) {
-                errorMessage = "Error al cargar datos: ${e.message}"
-                Log.e("HomeScreen", "Error al cargar datos", e)
-            } finally {
-                isLoading = false
-            }
-        } else if (token.isBlank() || spaceId.isBlank()) {
-            errorMessage = "Token o Space ID no disponibles."
-            isLoading = false
+        if (token.isNotBlank() && spaceId.isNotBlank()) {
+            homeViewModel.loadData(token, spaceId, startDateText, endDateText)
         }
     }
 
@@ -219,7 +156,7 @@ fun HomeScreen(
                             mainViewModel.getDateFormat().parse(tempEndDateText)
                             mainViewModel.updateDateFilter(tempStartDateText, tempEndDateText)
                             showDateFilterDialog = false
-                            isLoading = true
+                            // isLoading = true
                         } catch (e: Exception) {
                             Toast.makeText(context, "Formato de fecha inválido. Use YYYY-MM-DD", Toast.LENGTH_SHORT).show()
                         }
@@ -243,64 +180,27 @@ fun HomeScreen(
 
     if (showCreateTransactionDialog) {
         CreateTransactionDialog(
-            onDismissRequest = {
-                showCreateTransactionDialog = false
-                transactionAmountInput = ""
-                transactionCategoryInput = ""
-                transactionObjectiveInput = ""
-                transactionDescriptionInput = ""
-            },
+            onDismissRequest = { homeViewModel.toggleCreateTransactionDialog(false) },
             onSaveRequest = { amount, category, objective, description ->
-                showCreateTransactionDialog = false
-                if (token.isNotBlank() && spaceId.isNotBlank()) {
-                    scope.launch {
-                        try {
-                            val currentUser = ApiClient.apiService.getCurrentUser("Bearer $token")
-                            val userId = currentUser.id
-
-                            val finalObjective = if (objective.isBlank()) "None" else objective
-
-                            val newTransactionRequest = CreateTransactionRequest(
-                                amount = amount,
-                                category = category,
-                                objective = finalObjective,
-                                userId = userId,
-                                spaceId = spaceId,
-                                date = null,
-                                description = description
-                            )
-                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$finalObjective', UserId: '$userId', SpaceId: '$spaceId', Description: '$description'")
-                            
-                            val createdTransaction = withContext(Dispatchers.IO) {
-                                ApiClient.apiService.createTransaction("Bearer $token", newTransactionRequest)
-                            }
-                            Log.d("HomeScreen", "Transacción creada: ${createdTransaction.id}")
-                            Toast.makeText(context, "Transacción creada: ${createdTransaction.category} ${createdTransaction.amount}", Toast.LENGTH_LONG).show()
-                            
-                            transactionAmountInput = ""
-                            transactionCategoryInput = ""
-                            transactionObjectiveInput = ""
-                            transactionDescriptionInput = ""
-
-                            isLoading = true
-                        } catch (e: Exception) {
-                            Log.e("HomeScreen", "Error al crear transacción: ${e.message}", e)
-                            Toast.makeText(context, "Error al crear transacción: ${e.message}", Toast.LENGTH_LONG).show()
-                            errorMessage = "Error al crear transacción: ${e.message}"
+                scope.launch {
+                    homeViewModel.createTransaction(token, spaceId,
+                        onSuccess = { message ->
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        },
+                        onError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
                         }
-                    }
-                } else {
-                    Toast.makeText(context, "Token o Space ID no disponibles para crear transacción", Toast.LENGTH_LONG).show()
+                    )
                 }
             },
             amount = transactionAmountInput,
-            onAmountChange = { transactionAmountInput = it },
+            onAmountChange = { homeViewModel.onTransactionAmountInputChange(it) },
             category = transactionCategoryInput,
-            onCategoryChange = { transactionCategoryInput = it },
+            onCategoryChange = { homeViewModel.onTransactionCategoryInputChange(it) },
             objective = transactionObjectiveInput,
-            onObjectiveChange = { transactionObjectiveInput = it },
+            onObjectiveChange = { homeViewModel.onTransactionObjectiveInputChange(it) },
             description = transactionDescriptionInput,
-            onDescriptionChange = { transactionDescriptionInput = it }
+            onDescriptionChange = { homeViewModel.onTransactionDescriptionInputChange(it) }
         )
     }
 
@@ -308,7 +208,7 @@ fun HomeScreen(
         containerColor = Color.Black,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showCreateTransactionDialog = true },
+                onClick = { homeViewModel.toggleCreateTransactionDialog(true) },
                 containerColor = Color(0xFF1DB954),
                 contentColor = Color.White
             ) {
