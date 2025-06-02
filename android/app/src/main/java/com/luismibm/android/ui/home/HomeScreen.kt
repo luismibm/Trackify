@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android.ui.home
 
 import android.util.Log
 import android.view.ViewGroup
@@ -53,7 +53,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Calendar
 import androidx.compose.foundation.text.KeyboardOptions
@@ -64,6 +63,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
+import com.luismibm.android.ui.MainViewModel
 
 @Composable
 fun HomeScreen(
