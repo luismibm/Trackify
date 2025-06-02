@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android.ui.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -18,10 +18,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,21 +25,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.luismibm.android.api.ApiClient
-import com.luismibm.android.models.AuthRequest
-import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
+    viewModel: LoginViewModel,
     onLoginSuccess: (String) -> Unit,
     onLoginError: (String) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    
-    val scope = rememberCoroutineScope()
+    val email by viewModel.email
+    val password by viewModel.password
+    val isLoading by viewModel.isLoading
     
     Box(
         modifier = Modifier
@@ -76,7 +68,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(10.dp))
             TextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { viewModel.onEmailChange(it) },
                 placeholder = {
                     Text(
                         text = "ejemplo@mail.com",
@@ -104,7 +96,7 @@ fun LoginScreen(
 
             TextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { viewModel.onPasswordChange(it) },
                 visualTransformation = PasswordVisualTransformation(),
                 placeholder = {
                     Text(
@@ -126,17 +118,14 @@ fun LoginScreen(
             
             Button(
                 onClick = {
-                    scope.launch {
-                        isLoading = true
-                        try {
-                            val response = ApiClient.apiService.login(AuthRequest(email, password))
-                            onLoginSuccess(response.accessToken)
-                        } catch (e: Exception) {
-                            onLoginError("Error: ${e.message}")
-                        } finally {
-                            isLoading = false
+                    viewModel.login(
+                        onLoginSuccess = { token ->
+                            onLoginSuccess(token)
+                        },
+                        onLoginError = { error ->
+                            onLoginError(error)
                         }
-                    }
+                    )
                 },
                 enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(

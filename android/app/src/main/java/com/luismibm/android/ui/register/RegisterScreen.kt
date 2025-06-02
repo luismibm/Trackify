@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android.ui.register
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,14 +35,15 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
+    viewModel: RegisterViewModel,
     onRegisterSuccess: () -> Unit,
     onRegisterError: (String) -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
+    val email by viewModel.email
+    val password by viewModel.password
+    val confirmPassword by viewModel.confirmPassword
+    val isLoading by viewModel.isLoading
     
     val scope = rememberCoroutineScope()
     
@@ -77,7 +78,7 @@ fun RegisterScreen(
             Spacer(modifier = Modifier.height(10.dp))
             TextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { viewModel.onEmailChange(it) },
                 placeholder = {
                     Text(
                         text = "ejemplo@mail.com",
@@ -105,7 +106,7 @@ fun RegisterScreen(
 
             TextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { viewModel.onPasswordChange(it) },
                 visualTransformation = PasswordVisualTransformation(),
                 placeholder = {
                     Text(
@@ -134,7 +135,7 @@ fun RegisterScreen(
 
             TextField(
                 value = confirmPassword,
-                onValueChange = { confirmPassword = it },
+                onValueChange = { viewModel.onConfirmPasswordChange(it) },
                 visualTransformation = PasswordVisualTransformation(),
                 placeholder = {
                     Text(
@@ -156,22 +157,14 @@ fun RegisterScreen(
             
             Button(
                 onClick = {
-                    if (password != confirmPassword) {
-                        onRegisterError("Las contraseñas no coinciden")
-                        return@Button
-                    }
-                    
-                    scope.launch {
-                        isLoading = true
-                        try {
-                            ApiClient.apiService.register(RegisterRequest(email, password))
+                    viewModel.register(
+                        onRegisterSuccess = {
                             onRegisterSuccess()
-                        } catch (e: Exception) {
-                            onRegisterError("Error: ${e.message}")
-                        } finally {
-                            isLoading = false
+                        },
+                        onRegisterError = { errorMessage ->
+                            onRegisterError(errorMessage)
                         }
-                    }
+                    )
                 },
                 enabled = !isLoading && email.isNotEmpty() && password.isNotEmpty() && confirmPassword.isNotEmpty(),
                 colors = ButtonDefaults.buttonColors(

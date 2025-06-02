@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android.ui.transaction
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,172 +20,88 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.luismibm.android.api.ApiClient
-import com.luismibm.android.models.CreateTransactionRequest
 import com.luismibm.android.models.Transaction
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import com.luismibm.android.MainViewModel
 
 @Composable
 fun TransactionsScreen(
+    mainViewModel: MainViewModel,
+    transactionViewModel: TransactionViewModel,
     modifier: Modifier = Modifier,
     token: String?,
     spaceId: String?,
     onError: (String) -> Unit
 ) {
-    var transactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    val coroutineScope = rememberCoroutineScope()
+    val transactions by transactionViewModel.transactions
+    val isLoading by transactionViewModel.isLoading
+    val showDeleteDialog by transactionViewModel.showDeleteDialog
+    val transactionToDelete by transactionViewModel.transactionToDelete
+    val showCreateTransactionDialog by transactionViewModel.showCreateTransactionDialog
+    val isCreatingTransaction by transactionViewModel.isCreatingTransaction
+    val transactionAmountInput by transactionViewModel.transactionAmountInput
+    val transactionCategoryInput by transactionViewModel.transactionCategoryInput
+    val transactionObjectiveInput by transactionViewModel.transactionObjectiveInput
+    val transactionDescriptionInput by transactionViewModel.transactionDescriptionInput
+    val showDateFilterDialog by transactionViewModel.showDateFilterDialog
 
-    // State for deletion confirmation
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var transactionToDelete by remember { mutableStateOf<Transaction?>(null) }
-
-    // State for creation dialog
-    var showCreateTransactionDialog by remember { mutableStateOf(false) }
-    var transactionAmountInput by remember { mutableStateOf("") }
-    var transactionCategoryInput by remember { mutableStateOf("") }
-    var transactionObjectiveInput by remember { mutableStateOf("") }
-    var transactionDescriptionInput by remember { mutableStateOf("") }
-    var isCreatingTransaction by remember { mutableStateOf(false) }
-
-    // State for date filter dialog
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val calendar = Calendar.getInstance()
-
-    val defaultEndDate = calendar.time
-    calendar.add(Calendar.MONTH, -1)
-    val defaultStartDate = calendar.time
-
-    var startDateText by remember { mutableStateOf(dateFormat.format(defaultStartDate)) }
-    var endDateText by remember { mutableStateOf(dateFormat.format(defaultEndDate)) }
-    var showDateFilterDialog by remember { mutableStateOf(false) }
-    
     val dateFormatter = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
     val context = LocalContext.current
 
-    LaunchedEffect(token, spaceId, startDateText, endDateText) {
-        if (token != null && spaceId != null) {
-            isLoading = true
-            try {
-                val allTransactions = withContext(Dispatchers.IO) {
-                    ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
-                }
+    // Usar las fechas de MainViewModel
+    val startDateText by mainViewModel.startDateText.collectAsState()
+    val endDateText by mainViewModel.endDateText.collectAsState()
+    val dateFilterChanged by mainViewModel.dateFilterChanged.collectAsState()
 
-                val startDate = dateFormat.parse(startDateText)
-                val endDate = dateFormat.parse(endDateText)
+// Variables temporales para el diálogo
+    var tempStartDateText by remember { mutableStateOf(startDateText) }
+    var tempEndDateText by remember { mutableStateOf(endDateText) }
 
-                val calendar = Calendar.getInstance()
-                calendar.time = endDate
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                val adjustedEndDate = calendar.time
+// Actualizar las variables temporales cuando cambien las fechas del MainViewModel
+    LaunchedEffect(startDateText, endDateText) {
+        tempStartDateText = startDateText
+        tempEndDateText = endDateText
+    }
 
-                transactions = allTransactions.filter { 
-                    it.date >= startDate && it.date < adjustedEndDate
-                }
-            } catch (e: Exception) {
-                onError("Error al cargar las transacciones: ${e.message}")
-            } finally {
-                isLoading = false
-            }
-        } else {
-            if (token == null) onError("Token no disponible. Por favor, inicia sesión de nuevo.")
-            if (spaceId == null) onError("Por favor, selecciona un espacio para ver las transacciones.")
-            isLoading = false
-        }
+    LaunchedEffect(token, spaceId, dateFilterChanged) {
+        transactionViewModel.loadTransactions(token, spaceId, startDateText, endDateText, onError)
     }
 
     if (showCreateTransactionDialog) {
         CreateTransactionDialog(
             onDismissRequest = {
-                showCreateTransactionDialog = false
-                transactionAmountInput = ""
-                transactionCategoryInput = ""
-                transactionObjectiveInput = ""
-                transactionDescriptionInput = ""
+                transactionViewModel.toggleCreateTransactionDialog(false)
             },
             onSaveRequest = { amount, category, objective, description ->
-                if (token != null && spaceId != null) {
-                    isCreatingTransaction = true
-                    coroutineScope.launch {
-                        try {
-                            val currentUser = ApiClient.apiService.getCurrentUser("Bearer $token")
-                            val userId = currentUser.id
-                            val finalObjective = if (objective.isBlank()) "None" else objective
-
-                            val newTransactionRequest = CreateTransactionRequest(
-                                amount = amount,
-                                category = category,
-                                objective = finalObjective,
-                                userId = userId,
-                                spaceId = spaceId,
-                                date = null,
-                                description = description
-                            )
-                            val createdTransaction = withContext(Dispatchers.IO) {
-                                ApiClient.apiService.createTransaction("Bearer $token", newTransactionRequest)
-                            }
-                            transactions = listOf(createdTransaction) + transactions
-                            showCreateTransactionDialog = false
-                            transactionAmountInput = ""
-                            transactionCategoryInput = ""
-                            transactionObjectiveInput = ""
-                            transactionDescriptionInput = ""
-                        } catch (e: Exception) {
-                            onError("Error al crear transacción: ${e.message}")
-                        } finally {
-                            isCreatingTransaction = false
-                        }
-                    }
-                } else {
-                    onError("Token o Space ID no disponibles.")
-                }
+                transactionViewModel.createTransaction(
+                    amount, category, objective, description,
+                    token, spaceId, onError
+                )
             },
             amount = transactionAmountInput,
-            onAmountChange = { transactionAmountInput = it },
+            onAmountChange = { transactionViewModel.onTransactionAmountInputChange(it) },
             category = transactionCategoryInput,
-            onCategoryChange = { transactionCategoryInput = it },
+            onCategoryChange = { transactionViewModel.onTransactionCategoryInputChange(it) },
             objective = transactionObjectiveInput,
-            onObjectiveChange = { transactionObjectiveInput = it },
+            onObjectiveChange = { transactionViewModel.onTransactionObjectiveInputChange(it) },
             description = transactionDescriptionInput,
-            onDescriptionChange = { transactionDescriptionInput = it },
+            onDescriptionChange = { transactionViewModel.onTransactionDescriptionInputChange(it) },
             isLoading = isCreatingTransaction
         )
     }
 
     if (showDeleteDialog && transactionToDelete != null) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false; transactionToDelete = null },
+            onDismissRequest = { transactionViewModel.setTransactionToDelete(null) },
             title = { Text("Confirmar Eliminación", color = Color.White) },
             text = { Text("¿Estás seguro de que quieres eliminar esta transacción: ${transactionToDelete!!.category} (${String.format(Locale.GERMAN, "%.2f", transactionToDelete!!.amount)}€)?", color = Color.LightGray) },
             confirmButton = {
                 Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            if (token != null) {
-                                try {
-                                    val response = ApiClient.apiService.deleteTransaction("Bearer $token", transactionToDelete!!.id)
-                                    if (response.isSuccessful) {
-                                        transactions = transactions.filterNot { it.id == transactionToDelete!!.id }
-                                        showDeleteDialog = false
-                                        transactionToDelete = null
-                                    } else {
-                                        onError("Error al eliminar transacción: ${response.message()}")
-                                    }
-                                } catch (e: Exception) {
-                                    onError("Error al eliminar transacción: ${e.message}")
-                                }
-                            } else {
-                                onError("Token no disponible para eliminar.")
-                            }
-                        }
-                    },
+                    onClick = { transactionViewModel.deleteTransaction(token,onError) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                 ) {
                     Text("Eliminar", color = Color.White)
@@ -193,7 +109,7 @@ fun TransactionsScreen(
             },
             dismissButton = {
                 Button(
-                    onClick = { showDeleteDialog = false; transactionToDelete = null },
+                    onClick = { transactionViewModel.setTransactionToDelete(null) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) {
                     Text("Cancelar", color = Color.White)
@@ -205,15 +121,15 @@ fun TransactionsScreen(
 
     if (showDateFilterDialog) {
         AlertDialog(
-            onDismissRequest = { showDateFilterDialog = false },
+            onDismissRequest = { transactionViewModel.toggleDateFilterDialog(false) },
             title = { Text("Filtrar por Fechas", color = Color.White) },
             text = {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
                     Text("Fecha de inicio", color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
-                        value = startDateText,
-                        onValueChange = { startDateText = it },
+                        value = tempStartDateText,
+                        onValueChange = { tempStartDateText = it },
                         placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
@@ -225,14 +141,14 @@ fun TransactionsScreen(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Text("Fecha de fin", color = Color.White, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
-                        value = endDateText,
-                        onValueChange = { endDateText = it },
+                        value = tempEndDateText,
+                        onValueChange = { tempEndDateText = it },
                         placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
@@ -249,14 +165,8 @@ fun TransactionsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        try {
-                            dateFormat.parse(startDateText)
-                            dateFormat.parse(endDateText)
-                            showDateFilterDialog = false
-                            isLoading = true // Recargar datos con las nuevas fechas
-                        } catch (e: Exception) {
-                            android.widget.Toast.makeText(context, "Formato de fecha inválido. Use YYYY-MM-DD", android.widget.Toast.LENGTH_SHORT).show()
-                        }
+                        mainViewModel.updateDateFilter(tempStartDateText, tempEndDateText)
+                        transactionViewModel.toggleDateFilterDialog(false)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954))
                 ) {
@@ -265,7 +175,7 @@ fun TransactionsScreen(
             },
             dismissButton = {
                 Button(
-                    onClick = { showDateFilterDialog = false },
+                    onClick = { transactionViewModel.toggleDateFilterDialog(false) },
                     colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray)
                 ) {
                     Text("Cancelar", color = Color.White)
@@ -279,7 +189,7 @@ fun TransactionsScreen(
         floatingActionButton = {
             if (token != null && spaceId != null) {
                 FloatingActionButton(
-                    onClick = { showCreateTransactionDialog = true },
+                    onClick = { transactionViewModel.toggleCreateTransactionDialog(true) },
                     containerColor = Color(0xFF1DB954),
                     contentColor = Color.White
                 ) {
@@ -350,15 +260,12 @@ fun TransactionsScreen(
                             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                         )
                     }
-                    
+
                     items(transactions) { transaction ->
                         TransactionCard(
                             transaction = transaction,
                             dateFormatter = dateFormatter,
-                            onDeleteClicked = {
-                                transactionToDelete = it
-                                showDeleteDialog = true
-                            }
+                            onDeleteClicked = { transactionViewModel.setTransactionToDelete(it) }
                         )
                     }
                 }
@@ -573,4 +480,4 @@ fun CreateTransactionDialog(
         containerColor = Color(0xFF2C2C2C),
         properties = DialogProperties(dismissOnBackPress = !isLoading, dismissOnClickOutside = !isLoading)
     )
-} 
+}

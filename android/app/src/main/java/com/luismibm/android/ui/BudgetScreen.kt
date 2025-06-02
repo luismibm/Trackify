@@ -451,7 +451,7 @@ fun BudgetCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = String.format(Locale.GERMAN, "%.2f € / %.2f €", spentAmount, budget.amount),
+                    text = String.format(Locale.ENGLISH, "%.2f € / %.2f €", spentAmount, budget.amount),
                     fontSize = 16.sp,
                     color = if (spentAmount > budget.amount) Color.Red else Color.LightGray,
                     style = MaterialTheme.typography.bodyMedium
