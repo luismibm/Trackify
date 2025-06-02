@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android.ui.home
 
 import android.util.Log
 import android.view.ViewGroup
@@ -65,99 +65,38 @@ import androidx.compose.foundation.layout.PaddingValues
 
 @Composable
 fun HomeScreen(
+    viewModel: HomeViewModel,
     modifier: Modifier = Modifier,
     token: String,
     spaceId: String
 ) {
-    var isLoading by remember { mutableStateOf(true) }
-    var totalIncome by remember { mutableStateOf(0.0) }
-    var totalExpenses by remember { mutableStateOf(0.0) }
-    var balance by remember { mutableStateOf(0.0) }
-    var categoryPieData by remember { mutableStateOf<List<PieEntry>>(emptyList()) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Estados para filtro de fechas
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val calendar = Calendar.getInstance()
-    
-    // Por defecto, establecemos el rango del último mes
-    val defaultEndDate = calendar.time
-    calendar.add(Calendar.MONTH, -1)
-    val defaultStartDate = calendar.time
-    
-    var startDateText by remember { mutableStateOf(dateFormat.format(defaultStartDate)) }
-    var endDateText by remember { mutableStateOf(dateFormat.format(defaultEndDate)) }
-    var showDateFilterDialog by remember { mutableStateOf(false) }
+    val isLoading by viewModel.isLoading
+    val totalIncome by viewModel.totalIncome
+    val totalExpenses by viewModel.totalExpenses
+    val balance by viewModel.balance
+    val categoryPieData by viewModel.categoryPieData
+    val errorMessage by viewModel.errorMessage
+    val startDateText by viewModel.startDateText
+    val endDateText by viewModel.endDateText
+    val showDateFilterDialog by viewModel.showDateFilterDialog
+    val showCreateTransactionDialog by viewModel.showCreateTransactionDialog
+    val transactionAmountInput by viewModel.transactionAmountInput
+    val transactionCategoryInput by viewModel.transactionCategoryInput
+    val transactionObjectiveInput by viewModel.transactionObjectiveInput
+    val transactionDescriptionInput by viewModel.transactionDescriptionInput
 
     val currencyFormatter = NumberFormat.getCurrencyInstance(Locale("es", "ES"))
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var showCreateTransactionDialog by remember { mutableStateOf(false) }
-    var transactionAmountInput by remember { mutableStateOf("") }
-    var transactionCategoryInput by remember { mutableStateOf("") }
-    var transactionObjectiveInput by remember { mutableStateOf("") }
-    var transactionDescriptionInput by remember { mutableStateOf("") }
-
-    LaunchedEffect(token, spaceId, isLoading, startDateText, endDateText) {
-        if (isLoading && token.isNotBlank() && spaceId.isNotBlank()) {
-            errorMessage = null
-            try {
-                val allTransactions = withContext(Dispatchers.IO) {
-                    ApiClient.apiService.getTransactionsBySpace("Bearer $token", spaceId)
-                }
-                
-                val startDate = dateFormat.parse(startDateText)
-                val endDate = dateFormat.parse(endDateText)
-                
-                calendar.time = endDate
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                val adjustedEndDate = calendar.time
-                
-                val filteredTransactions = allTransactions.filter {
-                    it.date >= startDate && it.date < adjustedEndDate
-                }
-                
-                var income = 0.0
-                var expenses = 0.0
-                val expensesByCategory = mutableMapOf<String, Double>()
-
-                filteredTransactions.forEach { transaction ->
-                    if (transaction.amount > 0) {
-                        income += transaction.amount
-                    } else {
-                        expenses += transaction.amount
-                        val category = transaction.category ?: "Sin Categoría"
-                        expensesByCategory[category] = (expensesByCategory[category] ?: 0.0) + transaction.amount
-                    }
-                }
-
-                totalIncome = income
-                totalExpenses = expenses
-                balance = income + expenses
-
-                val pieEntries = expensesByCategory
-                    .filter { it.value < 0 }
-                    .map { (category, amount) -> PieEntry(kotlin.math.abs(amount.toFloat()), category) }
-                    .filter { it.value > 0 }
-
-                categoryPieData = pieEntries
-
-            } catch (e: Exception) {
-                errorMessage = "Error al cargar datos: ${e.message}"
-                Log.e("HomeScreen", "Error al cargar datos", e)
-            } finally {
-                isLoading = false
-            }
-        } else if (token.isBlank() || spaceId.isBlank()) {
-            errorMessage = "Token o Space ID no disponibles."
-            isLoading = false
+    LaunchedEffect(token, spaceId) {
+        if (token.isNotBlank() && spaceId.isNotBlank()) {
+            viewModel.loadData(token, spaceId)
         }
     }
 
     if (showDateFilterDialog) {
         AlertDialog(
-            onDismissRequest = { showDateFilterDialog = false },
+            onDismissRequest = { viewModel.toggleDateFilterDialog(false) },
             title = { Text("Filtrar por Fechas", color = Color.White) },
             text = {
                 Column(modifier = Modifier.padding(top = 8.dp)) {
@@ -165,7 +104,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
                         value = startDateText,
-                        onValueChange = { startDateText = it },
+                        onValueChange = { viewModel.onStartDateTextChange(it) },
                         placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
@@ -185,7 +124,7 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     TextField(
                         value = endDateText,
-                        onValueChange = { endDateText = it },
+                        onValueChange = { viewModel.onEndDateTextChange(it) },
                         placeholder = { Text("YYYY-MM-DD", color = Color.Gray) },
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
@@ -203,14 +142,7 @@ fun HomeScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        try {
-                            dateFormat.parse(startDateText)
-                            dateFormat.parse(endDateText)
-                            showDateFilterDialog = false
-                            isLoading = true
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Formato de fecha inválido. Use YYYY-MM-DD", Toast.LENGTH_SHORT).show()
-                        }
+                        viewModel.applyDateFilter()
                     },
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1DB954))
                 ) {
@@ -219,7 +151,7 @@ fun HomeScreen(
             },
             dismissButton = {
                 Button(
-                    onClick = { showDateFilterDialog = false },
+                    onClick = { viewModel.toggleDateFilterDialog(false) },
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray)
                 ) {
                     Text("Cancelar", color = Color.White)
@@ -231,64 +163,23 @@ fun HomeScreen(
 
     if (showCreateTransactionDialog) {
         CreateTransactionDialog(
-            onDismissRequest = {
-                showCreateTransactionDialog = false
-                transactionAmountInput = ""
-                transactionCategoryInput = ""
-                transactionObjectiveInput = ""
-                transactionDescriptionInput = ""
-            },
+            onDismissRequest = { viewModel.toggleCreateTransactionDialog(false) },
             onSaveRequest = { amount, category, objective, description ->
-                showCreateTransactionDialog = false
-                if (token.isNotBlank() && spaceId.isNotBlank()) {
-                    scope.launch {
-                        try {
-                            val currentUser = ApiClient.apiService.getCurrentUser("Bearer $token")
-                            val userId = currentUser.id
-
-                            val finalObjective = if (objective.isBlank()) "None" else objective
-
-                            val newTransactionRequest = CreateTransactionRequest(
-                                amount = amount,
-                                category = category,
-                                objective = finalObjective,
-                                userId = userId,
-                                spaceId = spaceId,
-                                date = null,
-                                description = description
-                            )
-                            Log.d("HomeScreenDebug", "Intentando crear transacción con: Amount: $amount, Category: '$category', Objective: '$finalObjective', UserId: '$userId', SpaceId: '$spaceId', Description: '$description'")
-                            
-                            val createdTransaction = withContext(Dispatchers.IO) {
-                                ApiClient.apiService.createTransaction("Bearer $token", newTransactionRequest)
-                            }
-                            Log.d("HomeScreen", "Transacción creada: ${createdTransaction.id}")
-                            Toast.makeText(context, "Transacción creada: ${createdTransaction.category} ${createdTransaction.amount}", Toast.LENGTH_LONG).show()
-                            
-                            transactionAmountInput = ""
-                            transactionCategoryInput = ""
-                            transactionObjectiveInput = ""
-                            transactionDescriptionInput = ""
-
-                            isLoading = true
-                        } catch (e: Exception) {
-                            Log.e("HomeScreen", "Error al crear transacción: ${e.message}", e)
-                            Toast.makeText(context, "Error al crear transacción: ${e.message}", Toast.LENGTH_LONG).show()
-                            errorMessage = "Error al crear transacción: ${e.message}"
-                        }
-                    }
-                } else {
-                    Toast.makeText(context, "Token o Space ID no disponibles para crear transacción", Toast.LENGTH_LONG).show()
-                }
+                viewModel.createTransaction(
+                    token = token,
+                    spaceId = spaceId,
+                    onSuccess = { message -> Toast.makeText(context, message, Toast.LENGTH_LONG).show() },
+                    onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                )
             },
             amount = transactionAmountInput,
-            onAmountChange = { transactionAmountInput = it },
+            onAmountChange = { viewModel.onTransactionAmountInputChange(it) },
             category = transactionCategoryInput,
-            onCategoryChange = { transactionCategoryInput = it },
+            onCategoryChange = { viewModel.onTransactionCategoryInputChange(it) },
             objective = transactionObjectiveInput,
-            onObjectiveChange = { transactionObjectiveInput = it },
+            onObjectiveChange = { viewModel.onTransactionObjectiveInputChange(it) },
             description = transactionDescriptionInput,
-            onDescriptionChange = { transactionDescriptionInput = it }
+            onDescriptionChange = { viewModel.onTransactionDescriptionInputChange(it) }
         )
     }
 
@@ -296,7 +187,7 @@ fun HomeScreen(
         containerColor = Color.Black,
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showCreateTransactionDialog = true },
+                onClick = { viewModel.toggleCreateTransactionDialog(true) },
                 containerColor = Color(0xFF1DB954),
                 contentColor = Color.White
             ) {
@@ -335,7 +226,7 @@ fun HomeScreen(
                     )
                     
                     Button(
-                        onClick = { showDateFilterDialog = true },
+                        onClick = { viewModel.toggleDateFilterDialog(true) },
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color.DarkGray),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)

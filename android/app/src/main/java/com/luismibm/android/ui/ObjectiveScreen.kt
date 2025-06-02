@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.github.mikephil.charting.data.PieEntry
 import com.luismibm.android.api.ApiClient
+import com.luismibm.android.ui.home.CategoryPercentageChart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
