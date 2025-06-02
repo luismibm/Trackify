@@ -58,11 +58,14 @@ class TransactionViewModel : ViewModel() {
     private val _token = mutableStateOf("")
     private val _spaceId = mutableStateOf("")
 
+    /*
     private val _startDateText = mutableStateOf("")
     val startDateText: State<String> = _startDateText
 
     private val _endDateText = mutableStateOf("")
     val endDateText: State<String> = _endDateText
+
+
 
     init {
         val defaultEndDate = calendar.time
@@ -72,6 +75,7 @@ class TransactionViewModel : ViewModel() {
         _startDateText.value = dateFormat.format(defaultStartDate)
         _endDateText.value = dateFormat.format(defaultEndDate)
     }
+    */
 
     fun onTransactionAmountInputChange(amount: String) {
         _transactionAmountInput.value = amount
@@ -87,14 +91,6 @@ class TransactionViewModel : ViewModel() {
 
     fun onTransactionDescriptionInputChange(description: String) {
         _transactionDescriptionInput.value = description
-    }
-
-    fun onStartDateTextChange(date: String) {
-        _startDateText.value = date
-    }
-
-    fun onEndDateTextChange(date: String) {
-        _endDateText.value = date
     }
 
     fun toggleCreateTransactionDialog(show: Boolean) {
@@ -130,8 +126,8 @@ class TransactionViewModel : ViewModel() {
 
         _token.value = token
         _spaceId.value = spaceId
-        _startDateText.value = startDateStr
-        _endDateText.value = endDateStr
+        // _startDateText.value = startDateStr
+        // _endDateText.value = endDateStr
 
         viewModelScope.launch {
             _isLoading.value = true
@@ -161,14 +157,8 @@ class TransactionViewModel : ViewModel() {
     }
 
     fun applyDateFilter(mainViewModel: MainViewModel, onError: (String) -> Unit) {
-        try {
-            dateFormat.parse(_startDateText.value)
-            dateFormat.parse(_endDateText.value)
-            _showDateFilterDialog.value = false
-            loadTransactions(_token.value, _spaceId.value, mainViewModel.startDateText.value, mainViewModel.endDateText.value, onError)
-        } catch (e: Exception) {
-            onError("Formato de fecha inválido. Use YYYY-MM-DD")
-        }
+        toggleDateFilterDialog(false)
+        loadTransactions(_token.value, _spaceId.value, mainViewModel.startDateText.value, mainViewModel.endDateText.value, onError)
     }
 
     fun createTransaction(

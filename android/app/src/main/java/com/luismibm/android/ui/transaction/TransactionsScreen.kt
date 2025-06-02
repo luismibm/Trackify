@@ -166,7 +166,7 @@ fun TransactionsScreen(
                 Button(
                     onClick = {
                         mainViewModel.updateDateFilter(tempStartDateText, tempEndDateText)
-                        transactionViewModel.applyDateFilter(mainViewModel, onError)
+                        transactionViewModel.toggleDateFilterDialog(false)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1DB954))
                 ) {
