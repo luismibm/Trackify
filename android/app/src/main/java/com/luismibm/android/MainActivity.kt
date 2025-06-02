@@ -45,12 +45,13 @@ import com.luismibm.android.api.ApiClient
 import com.luismibm.android.ui.BudgetScreen
 import com.luismibm.android.ui.login.LoginScreen
 import com.luismibm.android.ui.HomeScreen
-import com.luismibm.android.ui.RegisterScreen
+import com.luismibm.android.ui.register.RegisterScreen
 import com.luismibm.android.ui.SpaceSelectionScreen
 import com.luismibm.android.ui.TransactionsScreen
 import com.luismibm.android.ui.ObjectiveScreen
 import com.luismibm.android.ui.SettingsScreen
 import com.luismibm.android.ui.login.LoginViewModel
+import com.luismibm.android.ui.register.RegisterViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -119,6 +120,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToRegister = { currentScreen = Screen.REGISTER }
                             )
                             Screen.REGISTER -> RegisterScreen(
+                                viewModel = RegisterViewModel(),
                                 onRegisterSuccess = {
                                     Toast.makeText(this@MainActivity, "Registro exitoso. Por favor inicia sesión.", Toast.LENGTH_LONG).show()
                                     currentScreen = Screen.LOGIN
