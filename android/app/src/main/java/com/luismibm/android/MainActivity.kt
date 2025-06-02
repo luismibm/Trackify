@@ -44,16 +44,15 @@ import androidx.compose.ui.unit.sp
 import com.luismibm.android.api.ApiClient
 import com.luismibm.android.ui.BudgetScreen
 import com.luismibm.android.ui.login.LoginScreen
-import com.luismibm.android.ui.home.HomeScreen
+import com.luismibm.android.ui.HomeScreen
+import com.luismibm.android.ui.MainViewModel
 import com.luismibm.android.ui.register.RegisterScreen
 import com.luismibm.android.ui.SpaceSelectionScreen
-import com.luismibm.android.ui.transaction.TransactionsScreen
+import com.luismibm.android.ui.TransactionsScreen
 import com.luismibm.android.ui.ObjectiveScreen
 import com.luismibm.android.ui.SettingsScreen
-import com.luismibm.android.ui.home.HomeViewModel
 import com.luismibm.android.ui.login.LoginViewModel
 import com.luismibm.android.ui.register.RegisterViewModel
-import com.luismibm.android.ui.transaction.TransactionViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -248,13 +247,12 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         when (currentScreen) {
                             Screen.HOME -> HomeScreen(
-                                viewModel = HomeViewModel(),
+                                mainViewModel = MainViewModel(),
                                 modifier = Modifier.padding(innerPadding),
                                 token = token,
                                 spaceId = spaceId
                             )
                             Screen.TRANSACTIONS -> TransactionsScreen(
-                                viewModel = TransactionViewModel(),
                                 modifier = Modifier.padding(innerPadding),
                                 token = token,
                                 spaceId = spaceId,
