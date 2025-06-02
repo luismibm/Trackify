@@ -1,4 +1,4 @@
-package com.luismibm.android.ui
+package com.luismibm.android.ui.login
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -35,15 +35,14 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
+    viewModel: LoginViewModel,
     onLoginSuccess: (String) -> Unit,
     onLoginError: (String) -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    
-    val scope = rememberCoroutineScope()
+    val email by viewModel.email
+    val password by viewModel.password
+    val isLoading by viewModel.isLoading
     
     Box(
         modifier = Modifier
@@ -76,7 +75,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(10.dp))
             TextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { viewModel.onEmailChange(it) },
                 placeholder = {
                     Text(
                         text = "ejemplo@mail.com",
@@ -104,7 +103,7 @@ fun LoginScreen(
 
             TextField(
                 value = password,
-                onValueChange = { password = it },
+                onValueChange = { viewModel.onPasswordChange(it) },
                 visualTransformation = PasswordVisualTransformation(),
                 placeholder = {
                     Text(
@@ -126,17 +125,14 @@ fun LoginScreen(
             
             Button(
                 onClick = {
-                    scope.launch {
-                        isLoading = true
-                        try {
-                            val response = ApiClient.apiService.login(AuthRequest(email, password))
-                            onLoginSuccess(response.accessToken)
-                        } catch (e: Exception) {
-                            onLoginError("Error: ${e.message}")
-                        } finally {
-                            isLoading = false
+                    viewModel.login(
+                        onLoginSuccess = { token ->
+                            onLoginSuccess(token)
+                        },
+                        onLoginError = { error ->
+                            onLoginError(error)
                         }
-                    }
+                    )
                 },
                 enabled = !isLoading,
                 colors = ButtonDefaults.buttonColors(

@@ -43,13 +43,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.luismibm.android.api.ApiClient
 import com.luismibm.android.ui.BudgetScreen
-import com.luismibm.android.ui.LoginScreen
+import com.luismibm.android.ui.login.LoginScreen
 import com.luismibm.android.ui.HomeScreen
 import com.luismibm.android.ui.RegisterScreen
 import com.luismibm.android.ui.SpaceSelectionScreen
 import com.luismibm.android.ui.TransactionsScreen
 import com.luismibm.android.ui.ObjectiveScreen
 import com.luismibm.android.ui.SettingsScreen
+import com.luismibm.android.ui.login.LoginViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,9 +87,10 @@ class MainActivity : ComponentActivity() {
                 }
                 
                 if (currentScreen == Screen.LOGIN || currentScreen == Screen.REGISTER || currentScreen == Screen.SPACE_SELECTION) {
-                    androidx.compose.material3.Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         when (currentScreen) {
                             Screen.LOGIN -> LoginScreen(
+                                viewModel = LoginViewModel(),
                                 onLoginSuccess = {
                                     accessToken ->
                                     token = accessToken
